@@ -3,9 +3,9 @@
 Boost your SEO rankings with this all-in-one Backlink Generator Tool. This project includes a full set of assets—JavaScript engine, CSS UI, JSON backlink templates, and a standalone HTML interface—for generating backlinks using IFrame, Popup, Tab, or Ping methods.
 
 ## 🔗 Try Tool
-- １ [Auto Backlink Tool]([https://www.followlike.net/?r=19384926](https://autobacklinktoolonline.blogspot.com/))
-- ２ [Generate Backlinks Fast]([https://www.followlike.net/?r=19384926](https://fastbacklinkgenerator.blogspot.com/))
-- ３ [Online Link Builder]([https://www.followlike.net/?r=19384926](https://onlinelinkbuildertool.blogspot.com/))
+- １ [Auto Backlink Tool](https://autobacklinktoolonline.blogspot.com/)
+- ２ [Generate Backlinks Fast](https://fastbacklinkgenerator.blogspot.com/)
+- ３ [Online Link Builder](https://onlinelinkbuildertool.blogspot.com/)
 
 ## 🚀 Features
 
