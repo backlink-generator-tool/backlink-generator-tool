@@ -2,11 +2,6 @@
 
 Boost your SEO rankings with this all-in-one Backlink Generator Tool. This project includes a full set of assets—JavaScript engine, CSS UI, JSON backlink templates, and a standalone HTML interface—for generating backlinks using IFrame, Popup, Tab, or Ping methods.
 
-## 🔗 Try Tool
-- １ [Auto Backlink Tool](https://autobacklinktoolonline.blogspot.com/)
-- ２ [Generate Backlinks Fast](https://fastbacklinkgenerator.blogspot.com/)
-- ３ [Online Link Builder](https://onlinelinkbuildertool.blogspot.com/)
-
 ## 🚀 Features
 
 - 🔄 Fully client-side backlink generator (no backend required)
@@ -40,6 +35,11 @@ Boost your SEO rankings with this all-in-one Backlink Generator Tool. This proje
 - **Popup**: Opens new browser windows (requires pop-up permissions)
 - **Tab**: Opens or reuses tabs (great for desktop or multitasking)
 - **Ping**: Uses CORS proxies to silently fetch/ping URLs
+
+## 🔗 Try Tool
+- １ [Auto Backlink Tool](https://autobacklinktoolonline.blogspot.com/)
+- ２ [Generate Backlinks Fast](https://fastbacklinkgenerator.blogspot.com/)
+- ３ [Online Link Builder](https://onlinelinkbuildertool.blogspot.com/)
 
 ## 📢 Promote Your Links Further
 
