@@ -22,7 +22,7 @@ Boost your SEO rankings with this all-in-one Backlink Generator Tool. This proje
 |------------------------|----------------------------------------------|
 | `/index.html`          | Static UI for the backlink tool              |
 | `/styles.css`          | Clean responsive UI design                   |
-| `/autosurf.js`         | JavaScript engine for launching URLs         |
+| `/backlink-generator.js` | JavaScript engine for launching URLs       |
 | `/backlink-templates.json` | List of generic backlink templates       |
 | `/youtube-backlink-templates.json` | YouTube-specific templates       |
 | `/cors-proxies.json`   | CORS proxies for ping mode                   |
