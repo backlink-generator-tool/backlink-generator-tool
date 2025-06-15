@@ -5,9 +5,9 @@ let backlinkTemplates=['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL
   async function loadTemplates(){
     try {
       const [r1,r2,r3]=await Promise.all([
-        fetch('https://traffic-exchange.github.io/api/backlink-templates.json'),
-        fetch('https://traffic-exchange.github.io/api/youtube-backlink-templates.json'),
-        fetch('https://traffic-exchange.github.io/api/cors-proxies.json')
+        fetch('https://backlink-generator-tool.github.io/backlink-generator-tool/backlink-templates.json'),
+        fetch('https://backlink-generator-tool.github.io/backlink-generator-tool/youtube-backlink-templates.json'),
+        fetch('https://backlink-generator-tool.github.io/backlink-generator-tool/cors-proxies.json')
       ]);
       if(r1.ok) backlinkTemplates=await r1.json();
       if(r2.ok) youtubeBacklinkTemplates=await r2.json();
