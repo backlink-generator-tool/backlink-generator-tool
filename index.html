@@ -1,13 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
-    
-</style>
+    <link rel="stylesheet" href="https://backlink-generator-tool.github.io/backlink-generator-tool/styles.css" />
+    <style>
+        /* Website Screenshot */
+          #previewwebsite {
+            display: none;
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+          }
+    </style>
 </head>
 <body>
+      <!-- Backlink Generator Tool UI Block -->
+      <div id="controls">
+        <input id="urlInput" type="text" placeholder="Enter your page URL…" size="50">
+        <button id="startBtn">Generate Backlinks</button>
+        <button id="toggleAdvancedBtn">⚙️ Advanced ▼</button>
+      </div>
+    
+      <div id="advancedPanel" style="display: none;">
+        <label>Mode:
+          <select id="modeSelect">
+            <option value="iframe">IFrame</option>
+            <option value="popup">Popup</option>
+            <option value="tab">Tab</option>
+            <option value="ping">Ping</option>
+          </select>
+        </label>
+        <label>Popup/Tab behavior:
+          <select id="reuseToggle">
+            <option value="fresh">Open → goto → wait → close</option>
+            <option value="reuse">Reuse same window/tab</option>
+          </select>
+        </label>
+        <label>Max Concurrent:
+          <input id="concurrencyRange" type="range" min="1" max="50" value="5">
+          <span id="concurrentCount">5</span>
+        </label>
+        <label><input type="checkbox" id="rerunCheckbox"> Repeat after completion</label>
+        <label><input type="checkbox" id="shuffleCheckbox" checked> Shuffle templates before run</label>
+      </div>
+    
+      <div id="shareControls">
+        <input id="newUrl" type="text" readonly placeholder="Shareable URL appears here…">
+        <button id="copyBtn">Copy</button>
+      </div>
+    
+      <button id="downloadBtn">Download URLs</button>
+      <a id="externalLink" href="#" target="_self">🔗 Open Test</a>
+    
+      <div id="progressContainer">
+        <div style="background:#ddd; height:20px; border-radius:10px;">
+          <div id="progressBar" style="height:100%; width:0%; background:#4caf50;"></div>
+        </div>
+        <div id="progressText">0/0 (0%)</div>
+      </div>
+    
+      <!-- Website Screenshot Preview -->
+      <img id="previewwebsite" alt="Website Screenshot">
+    
+      <ul id="results" class="results-list"></ul>
 
-
-
+    <--  -->
+    <script src="https://backlink-generator-tool.github.io/backlink-generator-tool
+/backlink-generator.js"></script>
+    <script src="https://backlink-generator-tool.github.io/backlink-generator-tool
+/website-screenshot-preview.js"></script>
+    
+    <--  -->
+    <script src="https://backlink-generator-tool.github.io/api/ping-me.js"></script>
 </body>
 </html>
