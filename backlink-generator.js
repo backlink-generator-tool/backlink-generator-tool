@@ -73,32 +73,35 @@ function buildMap(url, vid){
  * is applied to the original (unencoded) map value using encodeURIComponent.
  */
 function replacePlaceholders(tpl, map) {
-  return tpl.replace(/\{\{(ENCODE_)?([A-Z0-9_]+)\}\}|\[(ENCODE_)?([A-Z0-9_]+)\]/gi, (_, e1, k1, e2, k2) => {
-    // Determine which groups matched and whether encoding was requested
-    const key = (k1 || k2 || '').toUpperCase();
-    const requestedEncode = !!(e1 || e2);
+  // support both {{KEY}} and [KEY], and detect optional ENCODE_ prefix
+  return tpl.replace(/\{\{(ENCODE_)?([A-Z0-9_]+)\}\}|\[(ENCODE_)?([A-Z0-9_]+)\]/gi,
+    function(match, enc1, key1, enc2, key2) {
+      const key = (key1 || key2 || '').toUpperCase();
+      const wantsEncode = !!(enc1 || enc2);
 
-    if (!key) return '';
+      if (!key) return '';
 
-    // If encoding explicitly requested, use the original map value and encode it.
-    if (requestedEncode) {
-      // Prefer the unencoded base value (e.g., map['URL']) and encode that.
-      // If base value is missing but ENCODE_<KEY> exists in map, use that as fallback.
-      const base = map[key] !== undefined ? map[key] : (map['ENCODE_' + key] !== undefined ? map['ENCODE_' + key] : '');
-      try {
-        // If the base already looks encoded (contains %), still re-run encodeURIComponent
-        // to make sure it's safe. This double-encoding shouldn't break normal URLs because
-        // we favor the real base value above.
-        return encodeURIComponent(base);
-      } catch {
-        return map['ENCODE_' + key] !== undefined ? map['ENCODE_' + key] : '';
+      // If encoding explicitly requested: prefer precomputed ENCODE_<KEY>,
+      // otherwise encode the base value at replace-time.
+      if (wantsEncode) {
+        const encodedKey = 'ENCODE_' + key;
+        if (map.hasOwnProperty(encodedKey) && map[encodedKey] !== undefined) {
+          return String(map[encodedKey]);
+        }
+        // if base exists, encode it; otherwise return empty string
+        const base = map.hasOwnProperty(key) ? String(map[key]) : '';
+        try {
+          return encodeURIComponent(base);
+        } catch (e) {
+          return base;
+        }
       }
-    }
 
-    // Non-encoded placeholder: return map[key] or empty string
-    return map[key] !== undefined ? map[key] : '';
+      // non-encoded placeholder → return raw map value or empty string
+      return map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
   });
 }
+
 
 // New helper: generate a final URL from a template + normalized URL (+ optional video id)
 function generateUrl(tpl, normUrl, vid) {
