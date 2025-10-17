@@ -1,6 +1,5 @@
-// ------------------------------------------------------------------
-// backlink-generator.js (patched)
-// ------------------------------------------------------------------
+// backlink-generator.js (patched drop-in)
+// Robust ENCODE_* handling and unified URL generation
 
 let backlinkTemplates = ['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL]','https://twitter.com/intent/tweet?url=[ENCODE_URL]&text=[ENCODE_TITLE]'],
     youtubeBacklinkTemplates = ['https://video.ultra-zone.net/watch.en.html.gz?v=[ID]','https://video.ultra-zone.net/watch.en.html.gz?v={{ID}}'],
@@ -34,11 +33,11 @@ function normalizeUrl(raw){
   }
 }
 
-function buildMap(url, vid){
+function buildMap(url, vid) {
   const p = new URL(url);
   const parts = p.hostname.split('.');
   const ln = parts.length;
-  let map = {
+  const map = {
     PROTOCOL: p.protocol,
     SUBDOMAIN: ln > 2 ? parts.slice(0, ln - 2).join('.') + '.' : '',
     DOMAINNAME: parts[ln - 2] || '',
@@ -54,7 +53,7 @@ function buildMap(url, vid){
   };
   if (vid) map.ID = vid;
 
-  // Also include ENCODE_* keys as pre-encoded copies (for compatibility)
+  // precompute ENCODE_* copies for compatibility
   Object.keys(map).forEach(k => {
     try {
       map['ENCODE_' + k] = encodeURIComponent(map[k]);
@@ -67,56 +66,51 @@ function buildMap(url, vid){
 }
 
 /**
- * Robust placeholder replacement.
- * Supports both [KEY] and {{KEY}} syntaxes.
- * If placeholder requests ENCODE_*, this function will ensure encoding
- * is applied to the original (unencoded) map value using encodeURIComponent.
+ * replacePlaceholders
+ * - supports both [KEY] and {{KEY}} forms
+ * - recognizes optional ENCODE_ prefix and returns encoded value
+ * - prefers precomputed map['ENCODE_'+KEY] if present, otherwise encodes map[KEY] at runtime
  */
 function replacePlaceholders(tpl, map) {
-  // support both {{KEY}} and [KEY], and detect optional ENCODE_ prefix
-  return tpl.replace(/\{\{(ENCODE_)?([A-Z0-9_]+)\}\}|\[(ENCODE_)?([A-Z0-9_]+)\]/gi,
-    function(match, enc1, key1, enc2, key2) {
-      const key = (key1 || key2 || '').toUpperCase();
-      const wantsEncode = !!(enc1 || enc2);
+  return tpl.replace(/(\{\{|\[)\s*(ENCODE_)?([A-Z0-9_]+)\s*(\}\}|\])/gi, function(match, open, encPrefix, key){
+    if(!key) return '';
+    key = key.toUpperCase();
+    const wantsEncode = !!encPrefix;
 
-      if (!key) return '';
-
-      // If encoding explicitly requested: prefer precomputed ENCODE_<KEY>,
-      // otherwise encode the base value at replace-time.
-      if (wantsEncode) {
-        const encodedKey = 'ENCODE_' + key;
-        if (map.hasOwnProperty(encodedKey) && map[encodedKey] !== undefined) {
-          return String(map[encodedKey]);
-        }
-        // if base exists, encode it; otherwise return empty string
-        const base = map.hasOwnProperty(key) ? String(map[key]) : '';
-        try {
-          return encodeURIComponent(base);
-        } catch (e) {
-          return base;
-        }
+    if (wantsEncode) {
+      const encodedKey = 'ENCODE_' + key;
+      // prefer precomputed ENCODE_<KEY>
+      if (map.hasOwnProperty(encodedKey) && map[encodedKey] !== undefined) {
+        return String(map[encodedKey]);
       }
-
-      // non-encoded placeholder → return raw map value or empty string
+      // fallback: encode base value at runtime
+      const base = map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
+      try {
+        return encodeURIComponent(base);
+      } catch {
+        return base;
+      }
+    } else {
+      // non-encoded placeholder => return raw value
       return map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
+    }
   });
 }
 
-
-// New helper: generate a final URL from a template + normalized URL (+ optional video id)
+/**
+ * generateUrl - unified builder for template -> final url
+ * uses buildMap + replacePlaceholders and logs debug info
+ */
 function generateUrl(tpl, normUrl, vid) {
   const map = buildMap(normUrl, vid);
   const final = replacePlaceholders(tpl, map);
-
-  // Debugging: always log generated URL and template mapping
   if (window && window.console && console.debug) {
-    console.debug('[BacklinkGen] template:', tpl, '->', final, ' map:', map);
+    console.debug('[BacklinkGen] template -> final:', tpl, '->', final, '\n map:', map);
   }
-
   return final;
 }
 
-// ---------- Settings / UI bindings (unchanged except usage of generateUrl) ----------
+// --- UI / Settings / bindings (kept compatible with your existing HTML) ---
 function saveSettings(){ const s={mode:modeSelect.value,reuse:reuseToggle.value,conc:concurrencyRange.value,rerun:rerunCheckbox.checked,shuffle:shuffleCheckbox.checked}; document.cookie='bg='+encodeURIComponent(JSON.stringify(s))+';path=/;max-age=31536000'; }
 function loadSettings(){
   const c=document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('bg='));
@@ -195,7 +189,7 @@ async function launchSlot(slot){
     let ok=false;
     for(const tpl of corsProxiesTemplates){
       try{
-        const proxyUrl = replacePlaceholders(tpl, buildMap(url));
+        const proxyUrl = generateUrl(tpl, url); // url may be the backlink target; generateUrl will encode correctly
         const res = await fetch(proxyUrl);
         if(res.ok){ ok=true; break; }
       }catch{}
@@ -214,11 +208,10 @@ function startRun(){
   let templates = vid ? [...youtubeBacklinkTemplates,'https://web.archive.org/save/[URL]'] : backlinkTemplates.slice();
   if(shuffleCheckbox.checked) templates.sort(()=>Math.random()-0.5);
 
-  // Build queue using generateUrl so encoding is handled consistently
+  // Build queue using generateUrl to guarantee encoding
   templates.forEach(tpl => {
     try {
       const finalUrl = generateUrl(tpl, norm, vid);
-      // Skip empty or malformed results
       if(finalUrl && finalUrl.trim()){
         queue.push({mode:modeSelect.value, url: finalUrl});
       } else {
