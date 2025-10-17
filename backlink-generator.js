@@ -23,9 +23,12 @@ let backlinkTemplates=['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL
     let map={PROTOCOL:p.protocol,SUBDOMAIN:ln>2?parts.slice(0,ln-2).join('.')+'.':'',DOMAINNAME:parts[ln-2]||'',TLD:parts[ln-1]||'',HOST:p.hostname,PORT:p.port?':'+p.port:'',PATH:p.pathname,QUERY:p.search,PARAMS:p.search?p.search.slice(1):'',FRAGMENT:p.hash,URL:url,DOMAIN:p.hostname};
     if(vid) map.ID=vid; Object.keys(map).forEach(k=>map['ENCODE_'+k]=encodeURIComponent(map[k])); return map;
   }
-  function replacePlaceholders(tpl,map){
-    return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g,(_,e1,k1,e2,k2)=>map[k1||k2]||'');
-  }
+  function replacePlaceholders(tpl, map) {
+	  return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g, (match, e1, k1, e2, k2) => {
+	    const key = (e1 || e2 ? 'ENCODE_' : '') + (k1 || k2);
+	    return map[key] !== undefined ? map[key] : '';
+	  });
+	}
 
   function saveSettings(){ const s={mode:modeSelect.value,reuse:reuseToggle.value,conc:concurrencyRange.value,rerun:rerunCheckbox.checked,shuffle:shuffleCheckbox.checked}; document.cookie='bg='+encodeURIComponent(JSON.stringify(s))+';path=/;max-age=31536000'; }
   function loadSettings(){
