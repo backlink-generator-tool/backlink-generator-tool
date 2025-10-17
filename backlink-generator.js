@@ -25,17 +25,18 @@ let backlinkTemplates=['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL
   }
   // --- Robust placeholder replacer: handles [URL], [ENCODE_URL], {{URL}}, {{ENCODE_URL}} ---
 	function replacePlaceholders(tpl, map) {
-		  return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g, (_, e1, k1, e2, k2) => {
-		    const key = k1 || k2;
-		    const needsEncode = e1 || e2;
-		    // If placeholder explicitly requests ENCODE_, try direct lookup first
-		    if (needsEncode) {
-		      if (map['ENCODE_' + key] !== undefined) return map['ENCODE_' + key];
-		      try { return encodeURIComponent(map[key] || ''); } catch { return ''; }
-		    }
-		    return map[key] || '';
-		  });
-		}
+	  return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g, (_, e1, k1, e2, k2) => {
+	    const key = k1 || k2;
+	    const needsEncode = e1 || e2;
+	    // If placeholder explicitly requests ENCODE_, try direct lookup first
+	    if (needsEncode) {
+	      if (map['ENCODE_' + key] !== undefined) return map['ENCODE_' + key];
+	      try { return encodeURIComponent(map[key] || ''); } catch { return ''; }
+	    }
+	    return map[key] || '';
+	  });
+	}
+
 
 
 
