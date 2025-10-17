@@ -25,18 +25,18 @@ let backlinkTemplates=['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL
   }
   // --- Robust placeholder replacer: handles [URL], [ENCODE_URL], {{URL}}, {{ENCODE_URL}} ---
 	function replacePlaceholders(tpl, map) {
-	  return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g, (match, bEncode1, key1, bEncode2, key2) => {
-	    // Determine whether the placeholder requested encoding
-	    const wantsEncode = !!(bEncode1 || bEncode2);
-	    // Choose the actual key name (URL, DOMAIN, ID, etc.)
-	    const key = key1 || key2;
-	    // Lookup value from map (map holds the raw values like URL, DOMAIN, etc.)
-	    const value = map[key];
-	    if (value === undefined || value === null) return '';
-	    // If encoding requested, encode the raw value now (use encodeURIComponent)
-	    return wantsEncode ? encodeURIComponent(String(value)) : String(value);
+	  return tpl.replace(/\{\{(ENCODE_)?([A-Z_]+)\}\}|\[(ENCODE_)?([A-Z_]+)\]/g, (_, e1, k1, e2, k2) => {
+	    const key = k1 || k2;
+	    const needsEncode = e1 || e2;
+	    let val = map[key];
+	    if (val == null) return '';
+	    if (needsEncode && !key.startsWith('ENCODE_')) {
+	      try { val = encodeURIComponent(val); } catch { /* ignore */ }
+	    }
+	    return val;
 	  });
 	}
+
 
 
   function saveSettings(){ const s={mode:modeSelect.value,reuse:reuseToggle.value,conc:concurrencyRange.value,rerun:rerunCheckbox.checked,shuffle:shuffleCheckbox.checked}; document.cookie='bg='+encodeURIComponent(JSON.stringify(s))+';path=/;max-age=31536000'; }
