@@ -1,9 +1,14 @@
-// backlink-generator.js (patched drop-in)
-// Robust ENCODE_* handling and unified URL generation
+// backlink-generator.js (updated)
+// - Removed console.debug lines
+// - Skipped archive submit templates are shown with ✔︎ and counted as done
 
 let backlinkTemplates = ['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL]','https://twitter.com/intent/tweet?url=[ENCODE_URL]&text=[ENCODE_TITLE]'],
     youtubeBacklinkTemplates = ['https://video.ultra-zone.net/watch.en.html.gz?v=[ID]','https://video.ultra-zone.net/watch.en.html.gz?v={{ID}}'],
     corsProxiesTemplates = ['https://api.allorigins.win/raw?url=[ENCODE_URL]'];
+
+// ---------- Archive-TLD handling ----------
+const ARCHIVE_TLDS = ["archive.today","archive.li","archive.vn","archive.fo","archive.md","archive.ph","archive.is"];
+let archiveSubmitSucceeded = false; // reset each run
 
 async function loadTemplates(){
   try {
@@ -33,11 +38,11 @@ function normalizeUrl(raw){
   }
 }
 
-function buildMap(url, vid) {
+function buildMap(url, vid){
   const p = new URL(url);
   const parts = p.hostname.split('.');
   const ln = parts.length;
-  const map = {
+  let map = {
     PROTOCOL: p.protocol,
     SUBDOMAIN: ln > 2 ? parts.slice(0, ln - 2).join('.') + '.' : '',
     DOMAINNAME: parts[ln - 2] || '',
@@ -55,22 +60,12 @@ function buildMap(url, vid) {
 
   // precompute ENCODE_* copies for compatibility
   Object.keys(map).forEach(k => {
-    try {
-      map['ENCODE_' + k] = encodeURIComponent(map[k]);
-    } catch {
-      map['ENCODE_' + k] = '';
-    }
+    try { map['ENCODE_' + k] = encodeURIComponent(map[k]); } catch { map['ENCODE_' + k] = ''; }
   });
 
   return map;
 }
 
-/**
- * replacePlaceholders
- * - supports both [KEY] and {{KEY}} forms
- * - recognizes optional ENCODE_ prefix and returns encoded value
- * - prefers precomputed map['ENCODE_'+KEY] if present, otherwise encodes map[KEY] at runtime
- */
 function replacePlaceholders(tpl, map) {
   return tpl.replace(/(\{\{|\[)\s*(ENCODE_)?([A-Z0-9_]+)\s*(\}\}|\])/gi, function(match, open, encPrefix, key){
     if(!key) return '';
@@ -79,38 +74,31 @@ function replacePlaceholders(tpl, map) {
 
     if (wantsEncode) {
       const encodedKey = 'ENCODE_' + key;
-      // prefer precomputed ENCODE_<KEY>
       if (map.hasOwnProperty(encodedKey) && map[encodedKey] !== undefined) {
         return String(map[encodedKey]);
       }
-      // fallback: encode base value at runtime
       const base = map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
-      try {
-        return encodeURIComponent(base);
-      } catch {
-        return base;
-      }
+      try { return encodeURIComponent(base); } catch { return base; }
     } else {
-      // non-encoded placeholder => return raw value
       return map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
     }
   });
 }
 
-/**
- * generateUrl - unified builder for template -> final url
- * uses buildMap + replacePlaceholders and logs debug info
- */
 function generateUrl(tpl, normUrl, vid) {
   const map = buildMap(normUrl, vid);
   const final = replacePlaceholders(tpl, map);
-  if (window && window.console && console.debug) {
-    console.debug('[BacklinkGen] template -> final:', tpl, '->', final, '\n map:', map);
-  }
+  // debug removed as requested
   return final;
 }
 
-// --- UI / Settings / bindings (kept compatible with your existing HTML) ---
+function buildArchiveVariants(tpl) {
+  const found = ARCHIVE_TLDS.find(h => tpl.toLowerCase().includes(h));
+  if (!found) return [tpl];
+  return ARCHIVE_TLDS.map(tld => tpl.replace(new RegExp(found, 'ig'), tld));
+}
+
+// ---------- UI / Settings / bindings ----------
 function saveSettings(){ const s={mode:modeSelect.value,reuse:reuseToggle.value,conc:concurrencyRange.value,rerun:rerunCheckbox.checked,shuffle:shuffleCheckbox.checked}; document.cookie='bg='+encodeURIComponent(JSON.stringify(s))+';path=/;max-age=31536000'; }
 function loadSettings(){
   const c=document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('bg='));
@@ -133,7 +121,8 @@ const urlInput=document.getElementById('urlInput'),
       downloadBtn=document.getElementById('downloadBtn'),
       progressBar=document.getElementById('progressBar'),
       progressText=document.getElementById('progressText'),
-      resultsUl=document.getElementById('results');
+      resultsUl=document.getElementById('results'),
+      externalLink=document.getElementById('externalLink');
 
 function updateReuseToggleState() {
   reuseToggle.disabled = !(modeSelect.value === 'popup' || modeSelect.value === 'tab');
@@ -153,12 +142,151 @@ function updateProgress(){
   progressText.textContent = `${doneCount}/${totalTasks} (${pct}%)`;
 }
 
+async function fetchWithTimeout(resource, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(resource, { signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
+async function tryArchiveVariants(slot, task) {
+  if (archiveSubmitSucceeded) {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>Archive Submit</strong> - skipped (one succeeded earlier). Tried: ${ARCHIVE_TLDS.join(', ')} <span class="status success">✔︎</span>`;
+    resultsUl.appendChild(li);
+    // We do not increment doneCount here because the caller of this helper (launchSlot)
+    // will increment doneCount for the composite summary item.
+    return true;
+  }
+
+  const variants = buildArchiveVariants(task.template);
+
+  for (const varTpl of variants) {
+    const finalUrl = generateUrl(varTpl, task.norm, task.vid);
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="${finalUrl}" target="_blank" rel="noreferrer noopener">${finalUrl}</a> <span class="status loading">⏳</span>`;
+    resultsUl.appendChild(li);
+    const statusSpan = li.querySelector('.status');
+
+    const markThis = ok => {
+      statusSpan.textContent = ok ? '✔︎' : '✖︎';
+      statusSpan.className = 'status ' + (ok ? 'success' : 'failure');
+    };
+
+    if (task.mode === 'iframe') {
+      const ifr = document.createElement('iframe');
+      ifr.classList.add('hidden-iframe');
+      document.body.appendChild(ifr);
+      let completed = false;
+      const cleanup = () => { try { ifr.remove(); } catch(e){} };
+      ifr.onload = () => { if (!completed) { completed = true; archiveSubmitSucceeded = true; markThis(true); cleanup(); } };
+      await new Promise(resolve => {
+        try { ifr.src = finalUrl; } catch(e){}
+        slot.timeoutId = setTimeout(() => {
+          if (!completed) { markThis(false); cleanup(); resolve(); } else resolve();
+        }, 8000);
+      });
+      if (archiveSubmitSucceeded) return true;
+      continue;
+    }
+
+    if (task.mode === 'popup' || task.mode === 'tab') {
+      const specs = task.mode === 'popup' ? 'width=600,height=400' : '';
+      try {
+        const w = window.open('about:blank', '_blank', specs);
+        if (!w) {
+          markThis(false);
+          console.warn('[BacklinkGen] popup blocked for', finalUrl);
+        } else {
+          w.location.href = finalUrl;
+          await new Promise(resolve => {
+            slot.timeoutId = setTimeout(() => {
+              try { w.close(); } catch(e){}
+              archiveSubmitSucceeded = true;
+              markThis(true);
+              resolve();
+            }, 8000);
+          });
+          if (archiveSubmitSucceeded) return true;
+        }
+      } catch (e) {
+        markThis(false);
+      }
+      continue;
+    }
+
+    if (task.mode === 'ping') {
+      let ok = false;
+      for (const proxyTpl of corsProxiesTemplates) {
+        try {
+          const proxyUrl = generateUrl(proxyTpl, finalUrl);
+          if (!proxyUrl) continue;
+          try {
+            const res = await fetchWithTimeout(proxyUrl, 5000);
+            if (res && res.ok) { ok = true; break; }
+          } catch (fetchErr) {
+            // proxy failed -> try next
+            continue;
+          }
+        } catch (err) {
+          continue;
+        }
+      }
+      markThis(ok);
+      if (ok) { archiveSubmitSucceeded = true; return true; }
+      continue;
+    }
+
+    try {
+      const res = await fetchWithTimeout(finalUrl, 5000).catch(()=>null);
+      const ok = res && res.ok;
+      markThis(!!ok);
+      if (ok) { archiveSubmitSucceeded = true; return true; }
+    } catch (e) {
+      markThis(false);
+    }
+  }
+
+  return false;
+}
+
 async function launchSlot(slot){
   if(!running || slot.busy) return;
   const task = queue.shift();
   if(!task){ if(slots.every(s=>!s.busy)) finishRun(); return; }
   slot.busy=true;
-  const {mode,url}=task;
+
+  if (task.isArchiveSubmit) {
+    const summaryLi = document.createElement('li');
+    summaryLi.innerHTML = `<strong>Archive Submit</strong> - trying variants... <span class="status loading">⏳</span>`;
+    resultsUl.appendChild(summaryLi);
+
+    let ok = false;
+    try {
+      ok = await tryArchiveVariants(slot, { mode: task.mode, template: task.template, norm: task.norm, vid: task.vid });
+    } catch (e) {
+      console.error('[BacklinkGen] tryArchiveVariants error', e);
+      ok = false;
+    }
+
+    const span = summaryLi.querySelector('.status');
+    span.textContent = ok ? '✔︎' : '✖︎';
+    span.className = 'status ' + (ok ? 'success' : 'failure');
+
+    doneCount++;
+    updateProgress();
+    slot.busy=false;
+    launchSlot(slot);
+    return;
+  }
+
+  const {mode,url} = task;
   const li=document.createElement('li'); li.innerHTML=`<a href="${url}" target="_blank" rel="noreferrer noopener">${url}</a><span class="status loading">⏳</span>`; resultsUl.appendChild(li);
   const mark = ok => { clearTimeout(slot.timeoutId); slot.busy=false; doneCount++; const span=li.querySelector('.status'); span.textContent=ok?'✔︎':'✖︎'; span.className='status '+(ok?'success':'failure'); updateProgress(); launchSlot(slot); };
 
@@ -176,7 +304,7 @@ async function launchSlot(slot){
     if(reuseToggle.value==='fresh'){
       const w = window.open('about:blank','_blank',specs); if(!w){ alert('Pop-up blocked!'); mark(false); return; }
       w.location.href = url;
-      slot.timeoutId = setTimeout(()=>{ w.close(); mark(true); },8000);
+      slot.timeoutId = setTimeout(()=>{ try{ w.close(); }catch(e){}; mark(true); },8000);
     } else {
       if(!slot.ref || slot.ref.closed){
         slot.ref = window.open('about:blank','slot-'+slot.id,specs);
@@ -185,16 +313,32 @@ async function launchSlot(slot){
       slot.ref.location.href = url;
       slot.timeoutId = setTimeout(()=>{ mark(true); },8000);
     }
+
   } else if(mode==='ping'){
+    const PROXY_TIMEOUT = 5000;
     let ok=false;
-    for(const tpl of corsProxiesTemplates){
-      try{
-        const proxyUrl = generateUrl(tpl, url); // url may be the backlink target; generateUrl will encode correctly
-        const res = await fetch(proxyUrl);
-        if(res.ok){ ok=true; break; }
-      }catch{}
+    for (const tpl of corsProxiesTemplates) {
+      try {
+        const proxyUrl = generateUrl(tpl, url);
+        if (!proxyUrl) continue;
+        try {
+          const res = await fetchWithTimeout(proxyUrl, PROXY_TIMEOUT);
+          if (res && res.ok) { ok = true; break; }
+        } catch (fetchErr) {
+          continue;
+        }
+      } catch (err) {
+        continue;
+      }
     }
     mark(ok);
+  } else {
+    try {
+      const res = await fetchWithTimeout(url, 5000).catch(()=>null);
+      mark(res && res.ok);
+    } catch (e) {
+      mark(false);
+    }
   }
 }
 
@@ -204,27 +348,51 @@ function startRun(){
   setExternalLink("Open URL", raw);
   urlInput.value = norm; saveSettings();
   running=true; queue=[]; slots.forEach(s=>s.ref&&s.ref.close()); resultsUl.innerHTML=''; totalTasks=0; doneCount=0;
+  archiveSubmitSucceeded = false; // reset flag at start of each run
+
   const vid=new URL(norm).searchParams.get('v');
   let templates = vid ? [...youtubeBacklinkTemplates,'https://web.archive.org/save/[URL]'] : backlinkTemplates.slice();
   if(shuffleCheckbox.checked) templates.sort(()=>Math.random()-0.5);
 
-  // Build queue using generateUrl to guarantee encoding
+  // Deduplicate archive submit templates: add exactly one composite task for the submit pattern
+  let archiveSubmitCompositeAdded = false;
+
   templates.forEach(tpl => {
     try {
-      const finalUrl = generateUrl(tpl, norm, vid);
-      if(finalUrl && finalUrl.trim()){
-        queue.push({mode:modeSelect.value, url: finalUrl});
+      if (/\/submit\/\?anyway=1&url=/i.test(tpl) && ARCHIVE_TLDS.some(h => tpl.toLowerCase().includes(h))) {
+        if (!archiveSubmitCompositeAdded) {
+          queue.push({
+            mode: modeSelect.value,
+            isArchiveSubmit: true,
+            template: tpl,
+            norm: norm,
+            vid: vid
+          });
+          archiveSubmitCompositeAdded = true;
+        } else {
+          // Skip duplicate archive submit templates (we already have one composite that will try all TLDs)
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>Archive Submit</strong> - skipped duplicate template <span class="status success">✔︎</span>`;
+          resultsUl.appendChild(li);
+          // Count skipped duplicates as done so progress is accurate
+          doneCount++;
+        }
       } else {
-        console.warn('[BacklinkGen] generated empty URL from template:', tpl);
+        const finalUrl = generateUrl(tpl, norm, vid);
+        if (finalUrl && finalUrl.trim()) {
+          queue.push({ mode: modeSelect.value, url: finalUrl });
+        } else {
+          console.warn('[BacklinkGen] generated empty URL from template:', tpl);
+        }
       }
-    } catch(e){
+    } catch (e) {
       console.error('[BacklinkGen] error generating url for tpl:', tpl, e);
     }
   });
 
-  totalTasks = queue.length;
+  totalTasks=queue.length;
   updateProgress();
-  newUrlInput.value = location.origin + '?' + norm;
+  newUrlInput.value = location.origin+'?'+norm;
   window.history.replaceState(null, '', location.pathname + '?' + norm);
   slots = Array.from({length:+concurrencyRange.value},(_,i)=>({id:i,busy:false,ref:null,timeoutId:null}));
   slots.forEach(s=>launchSlot(s)); startBtn.textContent='Stop';
@@ -268,7 +436,8 @@ window.addEventListener('DOMContentLoaded', async()=>{
 });
 
 function setExternalLink(txt, href){
-  const linkEl = document.getElementById("externalLink");
+  const linkEl = externalLink || document.getElementById('externalLink');
+  if(!linkEl) return;
   linkEl.href = href;
   linkEl.style.display = "inline-block";
   try { linkEl.textContent = "🔗 " + txt + " → " + (new URL(href)).hostname; } catch { linkEl.textContent = "🔗 " + txt; }
