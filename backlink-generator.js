@@ -87,11 +87,27 @@ function replacePlaceholders(tpl, map) {
 }
 
 function generateUrl(tpl, normUrl, vid) {
+  if (!tpl) return '';
+
+  // --- Blogger Auto-Fix Patch ---
+  // Blogger sometimes escapes or alters placeholders like:
+  //   %5BENCODE_URL%5D  → URL-encoded form
+  //   &#91;ENCODE_URL&#93; → HTML entity
+  //   {{ENCODE_URL}}    → allowed safely
+  // This normalizes all of them back to [ENCODE_URL]-style placeholders.
+  tpl = tpl
+    // Convert %5B...%5D (URL encoded brackets)
+    .replace(/%5B\s*(ENCODE_)?([A-Z0-9_]+)\s*%5D/gi, '[$1$2]')
+    // Convert Blogger HTML entity escapes like &#91;ENCODE_URL&#93;
+    .replace(/&#91;\s*(ENCODE_)?([A-Z0-9_]+)\s*&#93;/gi, '[$1$2]')
+    // Convert double curly braces {{ENCODE_URL}} → [ENCODE_URL]
+    .replace(/\{\{\s*(ENCODE_)?([A-Z0-9_]+)\s*\}\}/gi, '[$1$2]');
+
   const map = buildMap(normUrl, vid);
   const final = replacePlaceholders(tpl, map);
-  // console.debug removed per request
   return final;
 }
+
 
 function buildArchiveVariants(tpl) {
   const found = ARCHIVE_TLDS.find(h => tpl.toLowerCase().includes(h));
