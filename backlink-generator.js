@@ -1,15 +1,20 @@
-// backlink-generator.js (updated)
-// - Removes console.debug lines
-// - When one archive TLD succeeds, remaining TLDs are shown with ✔︎ (skipped)
-// - Other previous fixes retained: ENCODE_ handling, sequential CORS proxies for ping
+// backlink-generator.js (final v6.1)
+// - Fix: popup/tab with "Reuse same window/tab" now truly reuses the same window in ARCHIVE_TLDS variant runner
+// - Generalized archive.* per-URL variant logic (stop after first success)
+// - Robust Stop (runToken guards, timers cleared, close popups/iframes), strict timeout handling
+// - Blogger-safe ENCODE handling, CORS Ping first-success, 'Welcome to nginx' detection for archive.*
 
-let backlinkTemplates = ['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL]','https://twitter.com/intent/tweet?url=[ENCODE_URL]&text=[ENCODE_TITLE]'],
-    youtubeBacklinkTemplates = ['https://video.ultra-zone.net/watch.en.html.gz?v=[ID]','https://video.ultra-zone.net/watch.en.html.gz?v={{ID}}'],
+let backlinkTemplates = ['https://www.facebook.com/sharer/sharer.php?u=[ENCODE_URL]', 'https://twitter.com/intent/tweet?url=[ENCODE_URL]&text=[ENCODE_TITLE]'],
+    youtubeBacklinkTemplates = ['https://video.ultra-zone.net/watch.en.html.gz?v=[ID]', 'https://video.ultra-zone.net/watch.en.html.gz?v={{ID}}'],
     corsProxiesTemplates = ['https://api.allorigins.win/raw?url=[ENCODE_URL]'];
 
-// ---------- Archive-TLD handling ----------
 const ARCHIVE_TLDS = ["archive.today","archive.li","archive.vn","archive.fo","archive.md","archive.ph","archive.is"];
-let archiveSubmitSucceeded = false; // reset each run
+
+// Run control for Stop
+let runToken = 0;
+let rerunTimer = null;
+const activeIframes = new Set();
+const activeWindows = new Set();
 
 async function loadTemplates(){
   try {
@@ -21,9 +26,7 @@ async function loadTemplates(){
     if(r1.ok) backlinkTemplates=await r1.json();
     if(r2.ok) youtubeBacklinkTemplates=await r2.json();
     if(r3.ok) corsProxiesTemplates=await r3.json();
-  } catch(e){
-    console.warn('Failed to load remote templates:', e);
-  }
+  } catch(e){console.warn('Failed to load remote templates:', e);}
 }
 
 function normalizeUrl(raw){
@@ -34,15 +37,15 @@ function normalizeUrl(raw){
     p.hostname = p.hostname.replace(/^www\./i,'');
     if(!p.pathname || p.pathname === '/') p.pathname = '';
     return p.toString();
-  } catch {
-    return null;
-  }
+  } catch {return null;}
 }
 
-function buildMap(url, vid){
+function buildMap(url, vid) {
   const p = new URL(url);
   const parts = p.hostname.split('.');
   const ln = parts.length;
+
+  const hostnameNoWWW = p.hostname.replace(/^www\./i,'');
   let map = {
     PROTOCOL: p.protocol,
     SUBDOMAIN: ln > 2 ? parts.slice(0, ln - 2).join('.') + '.' : '',
@@ -55,67 +58,70 @@ function buildMap(url, vid){
     PARAMS: p.search ? p.search.slice(1) : '',
     FRAGMENT: p.hash,
     URL: url,
-    DOMAIN: p.hostname
+    DOMAIN: p.hostname,
+    NOPROTOCOL_URL: `${p.hostname}${p.pathname}${p.search}${p.hash}`,
+    NOSUBDOMAIN_URL: `${hostnameNoWWW}${p.pathname}${p.search}${p.hash}`
   };
   if (vid) map.ID = vid;
 
-  // precompute ENCODE_* copies for compatibility
-  Object.keys(map).forEach(k => {
-    try { map['ENCODE_' + k] = encodeURIComponent(map[k]); } catch { map['ENCODE_' + k] = ''; }
+  Object.keys(map).forEach(k=>{
+    try{map['ENCODE_'+k]=encodeURIComponent(map[k]);}
+    catch{map['ENCODE_'+k]='';}
   });
-
   return map;
 }
 
 function replacePlaceholders(tpl, map) {
-  return tpl.replace(/(\{\{|\[)\s*(ENCODE_)?([A-Z0-9_]+)\s*(\}\}|\])/gi, function(match, open, encPrefix, key){
-    if(!key) return '';
-    key = key.toUpperCase();
-    const wantsEncode = !!encPrefix;
-
-    if (wantsEncode) {
-      const encodedKey = 'ENCODE_' + key;
-      if (map.hasOwnProperty(encodedKey) && map[encodedKey] !== undefined) {
-        return String(map[encodedKey]);
+  return tpl.replace(/(\{\{|\[)\s*(ENCODE_)?([A-Z0-9_]+)\s*(\}\}|\])/gi,
+    (match,open,encPrefix,key,close,offset,fullStr)=>{
+      if(!key)return'';
+      key=key.toUpperCase();
+      const wantsEncode=!!encPrefix;
+      if(wantsEncode){
+        const encodedKey='ENCODE_'+key;
+        if(map.hasOwnProperty(encodedKey))return map[encodedKey];
+        try{return encodeURIComponent(map[key]||'');}catch{return'';}
       }
-      const base = map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
-      try { return encodeURIComponent(base); } catch { return base; }
-    } else {
-      return map.hasOwnProperty(key) && map[key] !== undefined ? String(map[key]) : '';
-    }
+      if(key==='URL'){
+        const before=fullStr.slice(Math.max(0,offset-30),offset).toLowerCase();
+        if(/\burl\s*=\s*$/.test(before)||/\burl\s*=\s*/i.test(fullStr)){
+          try{return encodeURIComponent(map['URL']||'');}catch{return map['URL']||'';}
+        }
+      }
+      return map[key]||'';
   });
 }
 
-function generateUrl(tpl, normUrl, vid) {
-  if (!tpl) return '';
-
-  // --- Blogger Auto-Fix Patch ---
-  // Blogger sometimes escapes or alters placeholders like:
-  //   %5BENCODE_URL%5D  → URL-encoded form
-  //   &#91;ENCODE_URL&#93; → HTML entity
-  //   {{ENCODE_URL}}    → allowed safely
-  // This normalizes all of them back to [ENCODE_URL]-style placeholders.
-  tpl = tpl
-    // Convert %5B...%5D (URL encoded brackets)
-    .replace(/%5B\s*(ENCODE_)?([A-Z0-9_]+)\s*%5D/gi, '[$1$2]')
-    // Convert Blogger HTML entity escapes like &#91;ENCODE_URL&#93;
-    .replace(/&#91;\s*(ENCODE_)?([A-Z0-9_]+)\s*&#93;/gi, '[$1$2]')
-    // Convert double curly braces {{ENCODE_URL}} → [ENCODE_URL]
-    .replace(/\{\{\s*(ENCODE_)?([A-Z0-9_]+)\s*\}\}/gi, '[$1$2]');
-
-  const map = buildMap(normUrl, vid);
-  const final = replacePlaceholders(tpl, map);
-  return final;
+function generateUrl(tpl, normUrl, vid){
+  if(!tpl)return'';
+  tpl=tpl
+    .replace(/%5B\s*(ENCODE_)?([A-Z0-9_]+)\s*%5D/gi,'[$1$2]')
+    .replace(/&#(?:x5b|91);\s*(ENCODE_)?([A-Z0-9_]+)\s*&#(?:x5d|93);/gi,'[$1$2]')
+    .replace(/\{\{\s*(ENCODE_)?([A-Z0-9_]+)\s*\}\}/gi,'[$1$2]')
+    .replace(/%7B%7B\s*(ENCODE_)?([A-Z0-9_]+)\s*%7D%7D/gi,'[$1$2]');
+  const map=buildMap(normUrl,vid);
+  return replacePlaceholders(tpl,map);
 }
 
-
-function buildArchiveVariants(tpl) {
-  const found = ARCHIVE_TLDS.find(h => tpl.toLowerCase().includes(h));
-  if (!found) return [tpl];
-  return ARCHIVE_TLDS.map(tld => tpl.replace(new RegExp(found, 'ig'), tld));
+// === Generalized ARCHIVE_TLDS helpers ===
+function isArchiveHost(hostname){
+  const h = (hostname||'').toLowerCase();
+  return ARCHIVE_TLDS.includes(h);
 }
 
-// ---------- UI / Settings / bindings ----------
+function buildArchiveUrlVariants(finalUrl){
+  try{
+    const u = new URL(finalUrl);
+    if(!isArchiveHost(u.hostname)) return null;
+    return ARCHIVE_TLDS.map(tld => {
+      const v = new URL(finalUrl);
+      v.hostname = tld;
+      return v.toString();
+    });
+  }catch{return null;}
+}
+
+// Settings & UI wires
 function saveSettings(){ const s={mode:modeSelect.value,reuse:reuseToggle.value,conc:concurrencyRange.value,rerun:rerunCheckbox.checked,shuffle:shuffleCheckbox.checked}; document.cookie='bg='+encodeURIComponent(JSON.stringify(s))+';path=/;max-age=31536000'; }
 function loadSettings(){
   const c=document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('bg='));
@@ -168,211 +174,186 @@ async function fetchWithTimeout(resource, timeout = 5000) {
     return res;
   } catch (err) {
     clearTimeout(id);
-    throw err;
+    return { ok: false, __error: err };
   }
 }
 
-/**
- * tryArchiveVariants
- * - tries each archive TLD sequentially
- * - when one succeeds, marks remaining TLDs as skipped+success (✔︎)
- */
-async function tryArchiveVariants(slot, task) {
-  // If already succeeded earlier, append all TLD entries marked as skipped-success and return true
-  if (archiveSubmitSucceeded) {
-    for (const tld of ARCHIVE_TLDS) {
-      const varTpl = task.template.replace(new RegExp(ARCHIVE_TLDS.find(h => task.template.toLowerCase().includes(h)), 'ig'), tld);
-      const finalUrl = generateUrl(varTpl, task.norm, task.vid);
-      const li = document.createElement('li');
-      li.innerHTML = `<a href="${finalUrl}" target="_blank" rel="noreferrer noopener">${finalUrl}</a> <span class="status success">✔︎</span> <em style="color:#666;margin-left:.5em">(skipped)</em>`;
-      resultsUl.appendChild(li);
-    }
-    return true;
-  }
+function isActive(slot){ return running && slot && slot.token === runToken; }
 
-  const variants = buildArchiveVariants(task.template);
-
-  for (let i = 0; i < variants.length; i++) {
-    const varTpl = variants[i];
-    const finalUrl = generateUrl(varTpl, task.norm, task.vid);
+// Try a list of archive variant URLs, stop after first success (per-task)
+async function tryArchiveVariantUrls(slot, variantUrls, mode) {
+  for (let i=0;i<variantUrls.length;i++){
+    if(!isActive(slot)) return false;
+    const finalUrl = variantUrls[i];
 
     const li = document.createElement('li');
     li.innerHTML = `<a href="${finalUrl}" target="_blank" rel="noreferrer noopener">${finalUrl}</a> <span class="status loading">⏳</span>`;
     resultsUl.appendChild(li);
     const statusSpan = li.querySelector('.status');
+    const markThis = ok => { if(!isActive(slot)) return; statusSpan.innerHTML=ok?'✔️':'✖️'; statusSpan.className='status '+(ok?'success':'failure'); };
 
-    const markThis = ok => {
-      statusSpan.textContent = ok ? '✔︎' : '✖︎';
-      statusSpan.className = 'status ' + (ok ? 'success' : 'failure');
-    };
-
-    // Mode-specific handling for this variant:
-    if (task.mode === 'iframe') {
+    if (mode === 'iframe') {
       const ifr = document.createElement('iframe');
       ifr.classList.add('hidden-iframe');
       document.body.appendChild(ifr);
+      activeIframes.add(ifr);
       let completed = false;
-      const cleanup = () => { try { ifr.remove(); } catch(e){} };
+      let resolver = null;
+      const cleanup = () => { try { ifr.remove(); } catch(e){} activeIframes.delete(ifr); };
+
       ifr.onload = () => {
-        if (!completed) {
-          completed = true;
-          archiveSubmitSucceeded = true;
-          markThis(true);
-          cleanup();
-        }
+        if (completed || !isActive(slot)) return;
+        try {
+          const frameTitle = ifr.contentDocument ? ifr.contentDocument.title : '';
+          if (frameTitle && frameTitle.trim().toLowerCase() === 'welcome to nginx') {
+            completed = true; markThis(false); cleanup(); if (resolver) resolver(); return;
+          }
+        } catch (e) { /* cross-origin; treat onload as success */ }
+        completed = true; markThis(true); cleanup(); if (resolver) resolver();
       };
+
       await new Promise(resolve => {
+        resolver = resolve;
         try { ifr.src = finalUrl; } catch(e){}
         slot.timeoutId = setTimeout(() => {
-          if (!completed) { markThis(false); cleanup(); resolve(); } else resolve();
+          if (!completed && isActive(slot)) { markThis(false); cleanup(); }
+          resolve();
         }, 8000);
       });
-      if (archiveSubmitSucceeded) {
-        // mark remaining variants as skipped-success
-        for (let j = i + 1; j < variants.length; j++) {
-          const remainingTpl = variants[j];
-          const remainingFinal = generateUrl(remainingTpl, task.norm, task.vid);
-          const li2 = document.createElement('li');
-          li2.innerHTML = `<a href="${remainingFinal}" target="_blank" rel="noreferrer noopener">${remainingFinal}</a> <span class="status success">✔︎</span> <em style="color:#666;margin-left:.5em">(skipped)</em>`;
-          resultsUl.appendChild(li2);
-        }
-        return true;
-      }
+
+      if (statusSpan.classList.contains('success')) return true;
       continue;
     }
 
-    if (task.mode === 'popup' || task.mode === 'tab') {
-      const specs = task.mode === 'popup' ? 'width=600,height=400' : '';
-      try {
-        const w = window.open('about:blank', '_blank', specs);
-        if (!w) {
-          markThis(false);
-          console.warn('[BacklinkGen] popup blocked for', finalUrl);
-        } else {
-          w.location.href = finalUrl;
-          await new Promise(resolve => {
-            slot.timeoutId = setTimeout(() => {
-              try { w.close(); } catch(e){}
-              archiveSubmitSucceeded = true;
+    if (mode === 'popup' || mode === 'tab') {
+      const specs = mode === 'popup' ? 'width=600,height=400' : '';
+      const reuse = (reuseToggle && reuseToggle.value === 'reuse');
+
+      if (reuse) {
+        // Reuse the same named window/tab per slot
+        if (!slot.ref || slot.ref.closed) {
+          slot.ref = window.open('about:blank', 'slot-'+slot.id, specs);
+          if (!slot.ref) { markThis(false); continue; }
+          activeWindows.add(slot.ref);
+        }
+        let loaded = false;
+        try { slot.ref.onload = () => { loaded = true; }; } catch(eAssign) {}
+        try { slot.ref.location.href = finalUrl; } catch(eSet) {}
+
+        await new Promise(resolve => {
+          slot.timeoutId = setTimeout(() => {
+            if (!isActive(slot)) return resolve();
+            if (!loaded) { markThis(false); return resolve(); }
+            try {
+              const t = slot.ref.document ? slot.ref.document.title : '';
+              if (t && t.trim().toLowerCase() === 'welcome to nginx') { markThis(false); }
+              else { markThis(true); }
+            } catch (eDoc) {
+              // Cross-origin but onload fired: success
               markThis(true);
-              resolve();
-            }, 8000);
-          });
-          if (archiveSubmitSucceeded) {
-            for (let j = i + 1; j < variants.length; j++) {
-              const remainingTpl = variants[j];
-              const remainingFinal = generateUrl(remainingTpl, task.norm, task.vid);
-              const li2 = document.createElement('li');
-              li2.innerHTML = `<a href="${remainingFinal}" target="_blank" rel="noreferrer noopener">${remainingFinal}</a> <span class="status success">✔︎</span> <em style="color:#666;margin-left:.5em">(skipped)</em>`;
-              resultsUl.appendChild(li2);
             }
-            return true;
+            resolve();
+          }, 8000);
+        });
+
+        if (statusSpan.classList.contains('success')) return true;
+      } else {
+        // Fresh window per attempt, then close
+        try {
+          const w = window.open('about:blank', '_blank', specs);
+          if (!w) {
+            markThis(false);
+          } else {
+            activeWindows.add(w);
+            let loaded = false;
+            try { w.onload = () => { loaded = true; }; } catch(eAssign){}
+            try { w.location.href = finalUrl; } catch(eSet){}
+
+            await new Promise(resolve => {
+              slot.timeoutId = setTimeout(() => {
+                if (!isActive(slot)) { try { w.close(); } catch{} activeWindows.delete(w); return resolve(); }
+                if (!loaded) { try { w.close(); } catch{} activeWindows.delete(w); markThis(false); return resolve(); }
+                try {
+                  const t = w.document ? w.document.title : '';
+                  if (t && t.trim().toLowerCase() === 'welcome to nginx') { markThis(false); }
+                  else { markThis(true); }
+                  try { w.close(); } catch{}
+                } catch (eDoc) {
+                  markThis(true);
+                  try { w.close(); } catch{}
+                }
+                activeWindows.delete(w);
+                resolve();
+              }, 8000);
+            });
+
+            if (statusSpan.classList.contains('success')) return true;
           }
-        }
-      } catch (e) {
-        markThis(false);
+        } catch { markThis(false); }
       }
       continue;
     }
 
-    if (task.mode === 'ping') {
+    if (mode === 'ping') {
       let ok = false;
       for (const proxyTpl of corsProxiesTemplates) {
+        if (!isActive(slot)) return false;
         try {
           const proxyUrl = generateUrl(proxyTpl, finalUrl);
           if (!proxyUrl) continue;
           try {
             const res = await fetchWithTimeout(proxyUrl, 5000);
             if (res && res.ok) { ok = true; break; }
-          } catch {
-            // try next proxy
-            continue;
-          }
-        } catch {
-          continue;
-        }
+          } catch {}
+        } catch {}
       }
       markThis(ok);
-      if (ok) {
-        archiveSubmitSucceeded = true;
-        // mark remaining variants as skipped-success
-        for (let j = i + 1; j < variants.length; j++) {
-          const remainingTpl = variants[j];
-          const remainingFinal = generateUrl(remainingTpl, task.norm, task.vid);
-          const li2 = document.createElement('li');
-          li2.innerHTML = `<a href="${remainingFinal}" target="_blank" rel="noreferrer noopener">${remainingFinal}</a> <span class="status success">✔︎</span> <em style="color:#666;margin-left:.5em">(skipped)</em>`;
-          resultsUl.appendChild(li2);
-        }
-        return true;
-      }
+      if (ok) return true;
       continue;
     }
 
-    // fallback: try a simple fetch (may be CORS blocked)
+    // Fallback direct fetch
     try {
-      const res = await fetchWithTimeout(finalUrl, 5000).catch(()=>null);
-      const ok = res && res.ok;
-      markThis(!!ok);
-      if (ok) {
-        archiveSubmitSucceeded = true;
-        for (let j = i + 1; j < variants.length; j++) {
-          const remainingTpl = variants[j];
-          const remainingFinal = generateUrl(remainingTpl, task.norm, task.vid);
-          const li2 = document.createElement('li');
-          li2.innerHTML = `<a href="${remainingFinal}" target="_blank" rel="noreferrer noopener">${remainingFinal}</a> <span class="status success">✔︎</span> <em style="color:#666;margin-left:.5em">(skipped)</em>`;
-          resultsUl.appendChild(li2);
-        }
-        return true;
-      }
-    } catch (e) {
+      const res = await fetchWithTimeout(finalUrl, 5000);
+      const ok = !!(res && res.ok);
+      markThis(ok);
+      if (ok) return true;
+    } catch {
       markThis(false);
     }
-    // next variant
   }
-
   return false;
 }
 
 async function launchSlot(slot){
-  if(!running || slot.busy) return;
+  if(!isActive(slot)) return;
   const task = queue.shift();
-  if(!task){ if(slots.every(s=>!s.busy)) finishRun(); return; }
+  if(!task){
+    if(slots.every(s=>!s.busy)) finishRun();
+    return;
+  }
   slot.busy=true;
 
-  if (task.isArchiveSubmit) {
-    const summaryLi = document.createElement('li');
-    summaryLi.innerHTML = `<strong>Archive Submit</strong> - trying variants... <span class="status loading">⏳</span>`;
-    resultsUl.appendChild(summaryLi);
-
-    let ok = false;
-    try {
-      ok = await tryArchiveVariants(slot, { mode: task.mode, template: task.template, norm: task.norm, vid: task.vid });
-    } catch (e) {
-      console.error('[BacklinkGen] tryArchiveVariants error', e);
-      ok = false;
-    }
-
-    const span = summaryLi.querySelector('.status');
-    span.textContent = ok ? '✔︎' : '✖︎';
-    span.className = 'status ' + (ok ? 'success' : 'failure');
-
-    doneCount++;
-    updateProgress();
-    slot.busy=false;
-    launchSlot(slot);
+  // Archive variant group task
+  if (task.archiveVariants && task.archiveVariants.length){
+    try { await tryArchiveVariantUrls(slot, task.archiveVariants, task.mode); } catch {}
+    if (!isActive(slot)) return;
+    doneCount++; updateProgress(); slot.busy=false; if (isActive(slot)) launchSlot(slot);
     return;
   }
 
+  // Normal task
   const {mode,url} = task;
   const li=document.createElement('li'); li.innerHTML=`<a href="${url}" target="_blank" rel="noreferrer noopener">${url}</a><span class="status loading">⏳</span>`; resultsUl.appendChild(li);
-  const mark = ok => { clearTimeout(slot.timeoutId); slot.busy=false; doneCount++; const span=li.querySelector('.status'); span.textContent=ok?'✔︎':'✖︎'; span.className='status '+(ok?'success':'failure'); updateProgress(); launchSlot(slot); };
+  const mark = ok => { if (!isActive(slot)) return; clearTimeout(slot.timeoutId); slot.busy=false; doneCount++; const span=li.querySelector('.status'); span.innerHTML=ok?'✔️':'✖️'; span.className='status '+(ok?'success':'failure'); updateProgress(); if (isActive(slot)) launchSlot(slot); };
 
   if (mode === 'iframe') {
     const ifr = document.createElement('iframe');
     ifr.classList.add('hidden-iframe');
     document.body.appendChild(ifr);
-    const cleanup = () => ifr.remove();
-    ifr.onload = () => { clearTimeout(slot.timeoutId); cleanup(); mark(true); };
+    activeIframes.add(ifr);
+    const cleanup = () => { try{ ifr.remove(); }catch(e){} activeIframes.delete(ifr); };
+    ifr.onload = () => { if (isActive(slot)) { clearTimeout(slot.timeoutId); cleanup(); mark(true); } else { cleanup(); } };
     slot.timeoutId = setTimeout(() => { cleanup(); mark(false); }, 8000);
     ifr.src = url;
     return;
@@ -380,38 +361,37 @@ async function launchSlot(slot){
     const specs = mode==='popup' ? 'width=600,height=400' : '';
     if(reuseToggle.value==='fresh'){
       const w = window.open('about:blank','_blank',specs); if(!w){ alert('Pop-up blocked!'); mark(false); return; }
+      activeWindows.add(w);
       w.location.href = url;
-      slot.timeoutId = setTimeout(()=>{ try{ w.close(); }catch(e){}; mark(true); },8000);
+      slot.timeoutId = setTimeout(()=>{ try{ w.close(); }catch(e){} activeWindows.delete(w); mark(true); },8000);
     } else {
       if(!slot.ref || slot.ref.closed){
         slot.ref = window.open('about:blank','slot-'+slot.id,specs);
         if(!slot.ref){ alert('Pop-up blocked!'); mark(false); return; }
       }
+      activeWindows.add(slot.ref);
       slot.ref.location.href = url;
-      slot.timeoutId = setTimeout(()=>{ mark(true); },8000);
+      slot.timeoutId = setTimeout(()=>{ activeWindows.delete(slot.ref); mark(true); },8000);
     }
 
   } else if(mode==='ping'){
     const PROXY_TIMEOUT = 5000;
     let ok=false;
     for (const tpl of corsProxiesTemplates) {
+      if (!isActive(slot)) return;
       try {
         const proxyUrl = generateUrl(tpl, url);
         if (!proxyUrl) continue;
         try {
           const res = await fetchWithTimeout(proxyUrl, PROXY_TIMEOUT);
           if (res && res.ok) { ok = true; break; }
-        } catch {
-          continue;
-        }
-      } catch (err) {
-        continue;
-      }
+        } catch {}
+      } catch {}
     }
     mark(ok);
   } else {
     try {
-      const res = await fetchWithTimeout(url, 5000).catch(()=>null);
+      const res = await fetchWithTimeout(url, 5000);
       mark(res && res.ok);
     } catch (e) {
       mark(false);
@@ -424,57 +404,83 @@ function startRun(){
   const norm = normalizeUrl(raw); if(!norm){ alert('Invalid URL'); return; }
   setExternalLink("Open URL", raw);
   urlInput.value = norm; saveSettings();
-  running=true; queue=[]; slots.forEach(s=>s.ref&&s.ref.close()); resultsUl.innerHTML=''; totalTasks=0; doneCount=0;
-  archiveSubmitSucceeded = false; // reset flag at start of each run
 
-  const vid=new URL(norm).searchParams.get('v');
+  // Reset run state
+  runToken++;
+  const thisToken = runToken;
+  running=true; queue=[];
+  slots.forEach(s=>{ try{ s.ref && s.ref.close(); }catch(e){}; });
+  resultsUl.innerHTML=''; totalTasks=0; doneCount=0;
+
+  if (rerunTimer) { clearTimeout(rerunTimer); rerunTimer = null; }
+
+  const vid = new URL(norm).searchParams.get('v');
   let templates = vid ? [...youtubeBacklinkTemplates,'https://web.archive.org/save/[URL]'] : backlinkTemplates.slice();
-  if(shuffleCheckbox.checked) templates.sort(()=>Math.random()-0.5);
+  if (shuffleCheckbox.checked) templates.sort(()=>Math.random()-0.5);
 
-  // Deduplicate archive submit templates: add exactly one composite task for the submit pattern
-  let archiveSubmitCompositeAdded = false;
+  // NEW: avoid duplicate archive groups (same path+query across archive TLDs)
+  const archiveGroupKeys = new Set();
 
-  templates.forEach(tpl => {
+  // Build queue with generalized archive variant grouping
+  const mode = modeSelect.value;
+  for (const tpl of templates){
     try {
-      if (/\/submit\/\?anyway=1&url=/i.test(tpl) && ARCHIVE_TLDS.some(h => tpl.toLowerCase().includes(h))) {
-        if (!archiveSubmitCompositeAdded) {
-          queue.push({
-            mode: modeSelect.value,
-            isArchiveSubmit: true,
-            template: tpl,
-            norm: norm,
-            vid: vid
-          });
-          archiveSubmitCompositeAdded = true;
-        } else {
-          // skip duplicates silently (no console.debug)
+      const finalUrl = generateUrl(tpl, norm, vid);
+      if (!finalUrl || !finalUrl.trim()) continue;
+
+      let isArchive = false, u = null;
+      try { u = new URL(finalUrl); isArchive = isArchiveHost(u.hostname); } catch {}
+
+      if (isArchive) {
+        // Key = protocol + path + search + hash, but WITHOUT hostname (so TLD variants are the same group)
+        const groupKey = `${u.protocol}//${u.pathname}${u.search}${u.hash}`;
+        if (archiveGroupKeys.has(groupKey)) {
+          // duplicate group → skip
+          continue;
         }
-      } else {
-        const finalUrl = generateUrl(tpl, norm, vid);
-        if (finalUrl && finalUrl.trim()) {
-          queue.push({ mode: modeSelect.value, url: finalUrl });
-        } else {
-          console.warn('[BacklinkGen] generated empty URL from template:', tpl);
+        archiveGroupKeys.add(groupKey);
+
+        const variants = buildArchiveUrlVariants(finalUrl);
+        if (variants && variants.length) {
+          queue.push({ mode, archiveVariants: variants });
+          continue;
         }
       }
-    } catch (e) {
-      console.error('[BacklinkGen] error generating url for tpl:', tpl, e);
-    }
-  });
 
-  totalTasks=queue.length;
+      // Non-archive or no variants built
+      queue.push({ mode, url: finalUrl });
+    } catch {}
+  }
+
+  totalTasks = queue.length;
   updateProgress();
-  newUrlInput.value = location.origin+'?'+norm;
+  newUrlInput.value = location.origin + '?' + norm;
   window.history.replaceState(null, '', location.pathname + '?' + norm);
-  slots = Array.from({length:+concurrencyRange.value},(_,i)=>({id:i,busy:false,ref:null,timeoutId:null}));
+  slots = Array.from({length:+concurrencyRange.value},(_,i)=>({id:i,busy:false,ref:null,timeoutId:null,token:thisToken}));
   slots.forEach(s=>launchSlot(s)); startBtn.textContent='Stop';
 }
 
+
 function finishRun(){
-  running=false; startBtn.textContent='Generate Backlinks'; slots.forEach(s=>s.ref&&s.ref.close()); if(rerunCheckbox.checked) setTimeout(startRun,500);
+  if (!running) return;
+  running=false; startBtn.textContent='Generate Backlinks';
+  slots.forEach(s=>{ try{ s.ref && s.ref.close(); }catch(e){}; s.timeoutId && clearTimeout(s.timeoutId); s.timeoutId=null; });
+  if(rerunCheckbox.checked){
+    rerunTimer = setTimeout(startRun,500);
+  }
 }
+
 function stopRun(){
-  running=false; queue=[]; startBtn.textContent='Generate Backlinks'; slots.forEach(s=>s.ref&&s.ref.close());
+  running=false; queue=[]; startBtn.textContent='Generate Backlinks';
+  if (rerunTimer) { clearTimeout(rerunTimer); rerunTimer=null; }
+  slots.forEach(s=>{
+    if (s.timeoutId){ try{ clearTimeout(s.timeoutId); }catch(e){}; s.timeoutId=null; }
+    try { s.ref && s.ref.close(); } catch(e){}
+  });
+  activeWindows.forEach(w=>{ try{ w.close(); }catch(e){} });
+  activeWindows.clear();
+  activeIframes.forEach(ifr=>{ try{ ifr.remove(); }catch(e){} });
+  activeIframes.clear();
 }
 
 downloadBtn.addEventListener('click',()=>{
@@ -493,7 +499,6 @@ window.addEventListener('DOMContentLoaded', async()=>{
   loadSettings(); await loadTemplates();
   updateReuseToggleState();
   const param=location.search.slice(1);
-
   if(param){
     const norm=normalizeUrl(param);
     if(norm){
@@ -512,5 +517,5 @@ function setExternalLink(txt, href){
   if(!linkEl) return;
   linkEl.href = href;
   linkEl.style.display = "inline-block";
-  try { linkEl.textContent = "🔗 " + txt + " → " + (new URL(href)).hostname; } catch { linkEl.textContent = "🔗 " + txt; }
+  try { linkEl.innerHTML = "🔗 " + txt + " → " + (new URL(href)).hostname; } catch { linkEl.innerHTML = "🔗 " + txt; }
 }
