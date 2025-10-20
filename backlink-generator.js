@@ -45,6 +45,28 @@ function buildMap(url, vid) {
   const parts = p.hostname.split('.');
   const ln = parts.length;
 
+ /**
+   * buildMap creates a dictionary of reusable placeholders for template replacement.
+   *
+   * Example for URL: https://www.example.co.uk/path/page?x=1#section
+   * -------------------------------------------------------------
+   * PROTOCOL         → "https:"
+   * SUBDOMAIN        → "www."
+   * DOMAINNAME       → "example"
+   * TLD              → "co.uk"
+   * HOST             → "www.example.co.uk"
+   * PORT             → "" or ":8080" if defined
+   * PATH             → "/path/page"
+   * QUERY            → "?x=1"
+   * PARAMS           → "x=1"
+   * FRAGMENT         → "#section"
+   * URL              → "https://www.example.co.uk/path/page?x=1#section"
+   * DOMAIN           → "www.example.co.uk"
+   * NOPROTOCOL_URL   → "www.example.co.uk/path/page?x=1#section"
+   * NOSUBDOMAIN_URL  → "example.co.uk/path/page?x=1#section"
+   * ID               → YouTube video ID if extracted externally
+   */
+    
   const hostnameNoWWW = p.hostname.replace(/^www\./i,'');
   let map = {
     PROTOCOL: p.protocol,
