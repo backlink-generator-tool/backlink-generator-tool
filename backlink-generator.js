@@ -420,40 +420,10 @@ async function launchSlot(slot){
     }
   }
 }
-async function validateTargetUrl(url) {
-  try {
-    const res = await fetchWithTimeout(url, 5000);
-    if (!res.ok) {
-      alert(`The URL responded with status: ${res.status}. Please check the link before continuing.`);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    alert(`Unable to reach the URL. Please verify the domain and try again.`);
-    return false;
-  }
-}
 
 function startRun(){
   const raw = urlInput.value.trim()||location.search.slice(1);
-
   const norm = normalizeUrl(raw); if(!norm){ alert('Invalid URL'); return; }
-/*
-    const norm = normalizeUrl(raw);
-    if (!norm) {
-      alert('Invalid URL format');
-      return;
-    }
-    
-    // Check if the URL is reachable before starting
-    const isReachable = await validateTargetUrl(norm);
-    if (!isReachable) return;
-*/
-
-// Check if the URL is reachable before starting
-const isReachable = await validateTargetUrl(norm);
-if (!isReachable) return;
-
   setExternalLink("Open URL", raw);
   urlInput.value = norm; saveSettings();
 
