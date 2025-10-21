@@ -437,7 +437,6 @@ async function validateTargetUrl(url) {
 function startRun(){
   const raw = urlInput.value.trim()||location.search.slice(1);
 
-    
   const norm = normalizeUrl(raw); if(!norm){ alert('Invalid URL'); return; }
 /*
     const norm = normalizeUrl(raw);
