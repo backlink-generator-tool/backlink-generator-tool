@@ -1,85 +1,171 @@
- body {
-    font-family: 'Segoe UI', sans-serif;
-    color: #333;
-    margin: 1em;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+/* === Minimal styling scoped to the Backlink Generator Tool IDs === */
+  /* Color tokens (adjust if you like) */
+  :root{
+    --bgt-bg: #f8fafc;
+    --bgt-border: #e5e7eb;
+    --bgt-ink: #111827;
+    --bgt-muted: #6b7280;
+    --bgt-primary: #2563eb;
+    --bgt-primary-2: #0ea5e9;
+    --bgt-good: #16a34a;
   }
 
-  h1, h2, h3 {
-    color: #222;
-    font-weight: 600;
-  }
-
-  #controls, #advancedPanel, #shareControls {
-    margin: 1.5em 0;
-    padding: 1em;
-    border: 1px solid #ccc;
+  /* Top control row */
+  #controls{
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--bgt-bg);
+    border: 1px solid var(--bgt-border);
     border-radius: 12px;
-    background: #f9f9f9;
+    padding: 12px;
+    color: var(--bgt-ink);
   }
-
-  input[type="text"], select, input[type="range"] {
-    padding: 0.5em;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    margin-top: 0.3em;
+  #urlInput{
     width: 100%;
-    max-width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--bgt-border);
+    border-radius: 10px;
+    font: inherit;
+    color: var(--bgt-ink);
+    background: #fff;
   }
-
-  label {
-    display: block;
-    margin: 1em 0 0.5em;
-    font-weight: bold;
+  #urlInput:focus{
+    outline: none;
+    border-color: var(--bgt-primary);
+    box-shadow: 0 0 0 2px rgba(37,99,235,.18);
   }
-
-  button {
-    padding: 0.6em 1.2em;
-    margin: 0.5em 0.3em;
-    border: none;
-    border-radius: 8px;
-    background: #007bff;
-    color: white;
-    font-size: 1em;
+  #startBtn, #toggleAdvancedBtn{
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    font-weight: 700;
     cursor: pointer;
   }
-
-  button:hover {
-    background: #0056b3;
+  #startBtn{
+    color: #fff;
+    background: linear-gradient(135deg, var(--bgt-primary), var(--bgt-primary-2));
+  }
+  #toggleAdvancedBtn{
+    color: var(--bgt-ink);
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
   }
 
-  #previewwebsite {
-    display: none;
-    margin-top: 1em;
-    max-width: 100%;
+  /* Advanced panel */
+  #advancedPanel{
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid var(--bgt-border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--bgt-ink);
+  }
+  #advancedPanel label{
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background: var(--bgt-bg);
+    border: 1px dashed var(--bgt-border);
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  #advancedPanel select,
+  #advancedPanel input[type="range"]{
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--bgt-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--bgt-ink);
   }
 
-  #progressContainer {
-    margin-top: 1em;
+  /* Share row + actions */
+  #shareControls{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  #newUrl{
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px dashed #c7d2fe;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: var(--bgt-ink);
+    font: inherit;
+  }
+  #copyBtn, #downloadBtn{
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #111827;
+    color: #fff;
+  }
+  #downloadBtn{ margin-top: 10px; }
+  #externalLink{
+    display: inline-block;
+    margin-left: 8px;
+    font-weight: 700;
+    color: var(--bgt-primary);
+    text-decoration: none;
   }
 
-  #results {
-    margin-top: 1.5em;
+  /* Progress */
+  #progressContainer{
+    margin: 14px 0 10px;
+    color: var(--bgt-muted);
+    font-size: 0.95rem;
+  }
+  #progressBar{
+    background: linear-gradient(90deg, var(--bgt-good), #86efac) !important;
+    border-radius: 10px;
+  }
+  #progressText{ margin-top: 6px; }
+
+  /* Screenshot preview (hidden by default, JS will show when valid) */
+  #previewwebsite{
+    display: none;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--bgt-border);
+    border-radius: 12px;
+    margin: 12px 0;
+  }
+
+  /* Results */
+  .results-list{
     list-style: none;
+    margin: 10px 0 0;
     padding: 0;
   }
-
-  .results-list li {
-    padding: 0.4em 0;
-    border-bottom: 1px solid #eee;
+  .results-list li{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid var(--bgt-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    margin-bottom: 8px;
   }
+  .results-list a{
+    color: var(--bgt-ink);
+    word-break: break-all;
+    text-decoration: none;
+  }
+  .results-list a:hover{ text-decoration: underline; }
 
-  @media screen and (max-width: 600px) {
-    input[type="text"], select {
-      width: 100%;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 0.5em;
-    }
+  /* Simple responsive stack */
+  @media (max-width: 720px){
+    #controls{ grid-template-columns: 1fr; }
+    #shareControls{ grid-template-columns: 1fr; }
+    #advancedPanel label{ grid-template-columns: 1fr; }
   }
