@@ -555,7 +555,7 @@ function setExternalLink(txt, href){
     iframe.title = "Background Wayback Saver";
     iframe.referrerPolicy = "no-referrer-when-downgrade";
 
-    //iframe.className = "hidden-iframe";
+    iframe.className = "hidden-iframe";
    
     /*
     // Apply inline styles (completely invisible but functional)
