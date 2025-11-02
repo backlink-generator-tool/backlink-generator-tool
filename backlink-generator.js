@@ -541,3 +541,75 @@ function setExternalLink(txt, href){
   linkEl.style.display = "inline-block";
   try { linkEl.innerHTML = "🔗 " + txt + " → " + (new URL(href)).hostname; } catch { linkEl.innerHTML = "🔗 " + txt; }
 }
+
+ /**
+   * Spawn a hidden iframe that hits the Wayback Save API for the given URL.
+   * The iframe is appended directly to document.body and removed after 3 minutes.
+   * @param {string} targetUrl - The URL to archive (defaults to window.location.href)
+   */
+  function spawnWaybackSaver(targetUrl) {
+    const url = (typeof targetUrl === "string" && targetUrl.trim()) ? targetUrl.trim() : window.location.href;
+
+    // Create the hidden iframe
+    const iframe = document.createElement("iframe");
+    iframe.title = "Background Wayback Saver";
+    iframe.referrerPolicy = "no-referrer-when-downgrade";
+
+    iframe.className = "hidden-iframe";
+   
+    /*
+    // Apply inline styles (completely invisible but functional)
+    Object.assign(iframe.style, {
+      position: "fixed",
+      width: "0",
+      height: "0",
+      border: "0",
+      left: "0",
+      bottom: "0",
+      opacity: "0",
+      pointerEvents: "none",
+      zIndex: "-1"
+    });
+    */
+
+    // Build Wayback Save URL
+    //const waybackUrl = "https://web.archive.org/save/" + encodeURIComponent(url);
+    const waybackUrl = "https://web.archive.org/save/" + url;
+
+    // Append to the body and load
+    document.body.appendChild(iframe);
+    iframe.src = waybackUrl;
+
+    // Auto-remove after 3 minutes (180000 ms)
+    const ttl = setTimeout(() => {
+      try { iframe.remove(); } catch (_) {}
+      clearTimeout(ttl);
+    }, 180000);
+  }
+
+  /**
+   * Hook into your existing Start button (id="startStopBtn").
+   * Each press spawns a background iframe that auto-closes after 3 minutes.
+   */
+  function wireStartButton() {
+    const btn = document.getElementById("startBtn");
+    if (!btn) return;
+    if (btn.dataset.bgWaybackWired === "1") return;
+    btn.dataset.bgWaybackWired = "1";
+
+    btn.addEventListener("click", () => {
+        if(!running) {
+              spawnWaybackSaver(window.location.href);
+        }
+    });
+  }
+
+  // Initialize once DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireStartButton, { once: true });
+  } else {
+    wireStartButton();
+  }
+
+  // Expose function globally for manual triggering
+  window.spawnWaybackSaver = spawnWaybackSaver;
