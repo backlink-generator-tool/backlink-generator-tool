@@ -461,9 +461,6 @@ function startRun(){
   runToken++;
   const thisToken = runToken;
   running=true; queue=[];
-
-  // Archive current page (only when a run actually starts)
-  archiveCurrentPageBackground();
     
   slots.forEach(s=>{ try{ s.ref && s.ref.close(); }catch(e){}; });
   resultsUl.innerHTML=''; totalTasks=0; doneCount=0;
@@ -512,6 +509,10 @@ function startRun(){
   updateProgress();
   newUrlInput.value = location.origin + '?' + norm;
   window.history.replaceState(null, '', location.pathname + '?' + norm);
+
+  // Archive current page (only when a run actually starts)
+  archiveCurrentPageBackground();
+    
   slots = Array.from({length:+concurrencyRange.value},(_,i)=>({id:i,busy:false,ref:null,timeoutId:null,token:thisToken}));
   slots.forEach(s=>launchSlot(s)); startBtn.textContent='Stop';
 }
