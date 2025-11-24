@@ -741,7 +741,7 @@ function startRun() {
     // Final validation: require a normalized URL before proceeding
     const norm = normalizeUrl(raw);
     if (!norm) {
-        alert('Invalid URL');
+        //alert('Invalid URL');
         return;
     }
 
