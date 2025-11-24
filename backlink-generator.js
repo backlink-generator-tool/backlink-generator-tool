@@ -452,8 +452,19 @@ function archiveCurrentPageBackground() {
 }
 
 function startRun(){
-  const raw = urlInput.value.trim()||location.search.slice(1);
+  let raw = urlInput.value.trim() || location.search.slice(1);
+  if (raw) {
+      try {
+        const decoded = decodeURIComponent(raw);
+        // if decoding changed it and the decoded value is a valid URL, prefer decoded
+        if (decoded !== raw && normalizeUrl(decoded)) raw = decoded;
+      } catch (e) {
+        // ignore malformed percent-encoding and keep raw
+      }
+  }
+
   const norm = normalizeUrl(raw); if(!norm){ alert('Invalid URL'); return; }
+    
   setExternalLink("Open URL", raw);
   urlInput.value = norm; saveSettings();
 
@@ -557,11 +568,18 @@ window.addEventListener('DOMContentLoaded', async()=>{
   updateReuseToggleState();
   const param=location.search.slice(1);
   if(param){
-    const norm=normalizeUrl(param);
-    if(norm){
-      urlInput.value=norm;
-      startRun();
-    } else alert('Invalid URL');
+      let rawParam = param;
+      try {
+        const decoded = decodeURIComponent(param);
+        if (decoded && decoded !== param) rawParam = decoded;
+      } catch (e) {
+        // ignore bad percent-encoding, use raw param
+      }
+      const norm = normalizeUrl(rawParam);
+      if (norm) {
+        urlInput.value = norm;
+        startRun();
+      } else alert('Invalid URL');
   } else {
     const here = window.location.href.split('#')[0];
     const testUrl = here + (here.includes('?') ? '&' : '?') + here;
