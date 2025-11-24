@@ -929,7 +929,11 @@ window.addEventListener('DOMContentLoaded', async () => {
             urlInput.value = norm;
             startRun();
         } else {
-            alert('Invalid URL');
+            //alert('Invalid URL');
+            
+            const here = window.location.href.split('#')[0];
+            const testUrl = here + (here.includes('?') ? '&' : '?') + here;
+            setExternalLink("Open Test", testUrl);
         }
     } else {
         const here = window.location.href.split('#')[0];
