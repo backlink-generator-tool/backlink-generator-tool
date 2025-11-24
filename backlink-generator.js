@@ -58,18 +58,70 @@ function getNormalizedUrlFromParam(param) {
 }
 
 
+// Add this helper above normalizeUrl()
+function isHostnameLikelyValid(hostname) {
+    if (!hostname) return false;
+    hostname = hostname.toLowerCase();
+
+    // allow localhost
+    if (hostname === 'localhost') return true;
+
+    // allow IPv4 like 127.0.0.1
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+        // basic numeric range check (0-255) for each octet
+        const parts = hostname.split('.').map(n => parseInt(n, 10));
+        if (parts.every(n => n >= 0 && n <= 255)) return true;
+        return false;
+    }
+
+    // allow IPv6 (very permissive check; URL() already normalized but we include this)
+    if (hostname.includes(':')) return true;
+
+    // Hostname must contain a dot (e.g. example.com). If not, reject.
+    if (hostname.indexOf('.') === -1) return false;
+
+    // check TLD looks reasonable: alpha, length 2..63 (covers most real TLDs incl. new gTLDs)
+    const tld = hostname.split('.').pop();
+    if (!/^[a-z]{2,63}$/i.test(tld)) return false;
+
+    // domain looks OK
+    return true;
+}
+
+// Replace your current normalizeUrl with this improved version
 function normalizeUrl(raw) {
     try {
-        let u = raw.trim();
-        if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-        const p = new URL(u);
+        if (!raw || !raw.trim()) return null;
+
+        // If passed an encoded value (rare here), try a safe decode first
+        let ustr = raw.trim();
+        try {
+            const dec = decodeURIComponent(ustr);
+            if (dec && dec !== ustr) ustr = dec;
+        } catch (e) {
+            // ignore bad percent-encoding and continue with raw
+        }
+
+        // If no scheme, prepend https:// to use URL parsing, but keep original intent
+        if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(ustr)) {
+            ustr = 'https://' + ustr;
+        }
+
+        const p = new URL(ustr);
+
+        // Reject obviously-bad hostnames like single-word "halloworld"
+        if (!isHostnameLikelyValid(p.hostname)) return null;
+
+        // Normalize: strip leading www., remove trailing slash if no path
         p.hostname = p.hostname.replace(/^www\./i, '');
+
         if (!p.pathname || p.pathname === '/') p.pathname = '';
         return p.toString();
-    } catch {
+    } catch (err) {
         return null;
     }
 }
+
 
 function buildMap(url, vid) {
     const p = new URL(url);
