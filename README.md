@@ -20,12 +20,12 @@ Boost your SEO rankings with this all-in-one Backlink Generator Tool. This proje
 
 | File/Folder            | Description                                  |
 |------------------------|----------------------------------------------|
-| `/index.html`          | Static UI for the backlink tool              |
-| `/styles.css`          | Clean responsive UI design                   |
-| `/backlink-generator.js` | JavaScript engine for launching URLs       |
-| `/backlink-templates.json` | List of generic backlink templates       |
-| `/youtube-backlink-templates.json` | YouTube-specific templates       |
-| `/cors-proxies.json`   | CORS proxies for ping mode                   |
+| `[/index.html](https://backlink-generator-tool.github.io/backlink-generator-tool/index.html)`          | Static UI for the backlink tool              |
+| `[/styles.css](https://backlink-generator-tool.github.io/backlink-generator-tool/styles.css)`          | Clean responsive UI design                   |
+| `[/backlink-generator.js](https://backlink-generator-tool.github.io/backlink-generator-tool/backlink-generator.js)` | JavaScript engine for launching URLs       |
+| `[/backlink-templates.json](https://backlink-generator-tool.github.io/backlink-generator-tool/backlink-templates.json)` | List of generic backlink templates       |
+| `[/youtube-backlink-templates.json](https://backlink-generator-tool.github.io/backlink-generator-tool/youtube-backlink-templates.json)` | YouTube-specific templates       |
+| `[/cors-proxies.json](https://backlink-generator-tool.github.io/backlink-generator-tool/cors-proxies.json)`   | CORS proxies for ping mode                   |
 
 ## 🧠 How It Works
 
