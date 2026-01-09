@@ -1,0 +1,335 @@
+<!doctype html>
+<html> 
+ <head> 
+  <title>Free Backlink Maker Generator Builder – Viral Online SEO Tool for Auto Submission, YouTube Backlinks, Traffic &amp; Index Boost (IFrame/Popup/Tab/Ping)</title> 
+ </head> 
+ <body> 
+  <link href="https://backlink-generator-tool.github.io/backlink-generator-tool/stealth-iframe.css" rel="stylesheet"> 
+  <style>
+  /* ==========================================
+     Viral Neon Aurora Theme (CSS-only; Blogger friendly)
+     Color theory:
+       - Triadic core: Magenta (#e11d48), Cyan (#06b6d4), Amber (#f59e0b)
+       - Complementary success: Emerald (#10b981)
+       - Neutrals tuned for Contempo Light
+     Typography: system stack for speed + clarity
+     ========================================== */
+  :root{
+    --bg:#070812;
+    --panel:#0d1022;
+    --panel-2:#0b0f1d;
+    --ink:#eaf2ff;
+    --muted:#a7b0d6;
+
+    --magenta:#e11d48;   /* triad A */
+    --cyan:#06b6d4;      /* triad B */
+    --amber:#f59e0b;     /* triad C */
+    --emerald:#10b981;   /* complement: success */
+
+    --ring: rgba(6,182,212,.28);
+    --edge: rgba(255,255,255,.14);
+    --edge2: rgba(255,255,255,.08);
+  }
+
+  .vx-wrap{
+    margin:0 auto; max-width:1140px; padding:18px 16px 30px;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at -10% 0%, rgba(225,29,72,.12), transparent 60%),
+      radial-gradient(1100px 720px at 110% -10%, rgba(6,182,212,.16), transparent 55%),
+      radial-gradient(1400px 840px at 50% 110%, rgba(245,158,11,.10), transparent 60%);
+  }
+
+  /* HERO */
+  .vx-hero{
+    position:relative; padding:18px; border-radius:18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--edge);
+    box-shadow: 0 18px 48px rgba(0,0,0,.45), inset 0 0 0 1px var(--edge2);
+  }
+  .vx-hero::before{
+    content:""; position:absolute; inset:-1px; border-radius:18px; pointer-events:none;
+    background: linear-gradient(135deg, rgba(225,29,72,.35), rgba(6,182,212,.35), rgba(245,158,11,.28));
+    -webkit-mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    padding:1px;
+  }
+  .vx-top{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;
+  }
+  .vx-title{
+    margin:0; font-weight:900; letter-spacing:.2px;
+    font-size:clamp(1.15rem,2.7vw,1.7rem);
+    background: linear-gradient(90deg,#fff,#c7d2fe,#99f6e4);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .vx-sub{ margin:0; color:var(--muted); font-size:.98rem; }
+
+  /* TOOL (IDs must remain intact) */
+  #controls{
+    display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center;
+    background: rgba(255,255,255,.05);
+    border:1px solid var(--edge);
+    border-radius:14px; padding:12px;
+  }
+  #controls input#urlInput{
+    width:100%; padding:12px 14px; color:var(--ink);
+    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.20);
+    border-radius:12px; outline:none;
+    transition: box-shadow .15s ease, border-color .15s ease;
+  }
+  #controls input#urlInput:focus{
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+  #controls button{
+    padding:11px 14px; border:0; border-radius:12px; cursor:pointer; font-weight:800;
+    transition: transform .06s ease, filter .15s ease;
+  }
+  #controls button:active{ transform: translateY(1px); }
+  #startBtn{
+    color:#020617;
+    background: linear-gradient(135deg, var(--magenta), var(--cyan));
+  }
+  #toggleAdvancedBtn{
+    color:#e5e7eb; background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+  }
+
+  #advancedPanel{
+    margin-top:10px; background: rgba(255,255,255,.05);
+    border:1px solid var(--edge); border-radius:14px; padding:12px;
+  }
+  #advancedPanel label{
+    display:grid; grid-template-columns: 240px 1fr; align-items:center;
+    gap:10px; padding:10px; margin-bottom:8px;
+    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.16); border-radius:12px;
+  }
+  #advancedPanel select, #advancedPanel input[type="range"]{
+    width:100%; padding:10px; color:var(--ink);
+    background: rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.20); border-radius:10px;
+  }
+  #advancedPanel input[type="checkbox"]{ transform: scale(1.2); margin-right:8px; }
+
+  .popup-disclaimer{
+    display:block; margin-top:8px;
+    background: rgba(245,158,11,.12);
+    border:1px solid rgba(245,158,11,.45);
+    color:#fde68a; border-radius:12px; padding:10px 12px; font-weight:700;
+  }
+  .popup-disclaimer small{ color:#ffd48a; }
+
+  /* Share + Actions */
+  #shareControls{
+    display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:12px;
+  }
+  #shareControls input#newUrl{
+    width:100%; padding:12px 14px; color:#e2e8f0;
+    background: rgba(6,182,212,.12);
+    border:1px dashed rgba(6,182,212,.42);
+    border-radius:12px;
+  }
+  #copyBtn, #downloadBtn{
+    background: linear-gradient(135deg, #111827, #0b1220); color:#fff;
+    border:0; border-radius:12px; padding:11px 14px; cursor:pointer; font-weight:800;
+  }
+  #externalLink{ display:inline-block; color:#a5b4fc; text-decoration:none; }
+
+  /* Progress */
+  #progressContainer{ margin:14px 0 10px; }
+  #progressText{ margin-top:6px; font-size:.98rem; color:var(--muted); }
+  #progressContainer > div{ border:1px solid var(--edge); }
+  #progressBar{ background: linear-gradient(90deg, var(--amber), var(--cyan)); }
+
+  /* Screenshot BEFORE results */
+  #previewwebsite{
+    display:none; width:100%; height:auto; border-radius:14px;
+    border:1px solid var(--edge);
+    box-shadow: 0 18px 46px rgba(0,0,0,.45);
+    margin:14px 0;
+  }
+
+  /* Results */
+  .results-list{ list-style:none; margin:10px 0 0; padding:0; }
+  .results-list li{
+    display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
+    background: rgba(255,255,255,.05);
+    border:1px solid var(--edge); border-radius:12px;
+    padding:10px 12px; margin-bottom:8px;
+  }
+  .results-list a{ color:#c7d2fe; word-break:break-all; text-decoration:none; }
+  .results-list a:hover{ text-decoration:underline; }
+  .status{ padding:2px 8px; border-radius:999px; font-weight:800; }
+  .status.loading{ background: rgba(251,191,36,.15); color:#fbbf24; border:1px solid rgba(251,191,36,.45); }
+  .status.success{ background: rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.45); }
+  .status.failure{ background: rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.45); }
+
+  /* Content blocks */
+  .vx-content{ margin-top:22px; background: linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--edge); border-radius:18px; padding:18px; }
+  .vx-content h2{ margin-top:0; font-size:1.22rem; font-weight:900; }
+  .vx-content h3{ font-size:1.04rem; margin-top:16px; }
+  .lead{ color:var(--ink); opacity:.96; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 16px; }
+  .chip{ background: rgba(225,29,72,.14); border:1px solid rgba(225,29,72,.38); color:#fecdd3; padding:6px 10px; border-radius:999px; font-size:.85rem; }
+
+  .grid-3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .card{
+    background: rgba(255,255,255,.06); border:1px solid var(--edge);
+    border-radius:14px; padding:12px;
+  }
+  .card strong{ color:#fff; }
+
+  .cta{
+    margin-top:16px; padding:14px; border-radius:16px;
+    background: linear-gradient(135deg, var(--magenta), var(--cyan));
+    color:#020617; font-weight:900;
+  }
+  .cta a{ color:#020617; text-decoration:underline; }
+
+  .note{ background: rgba(255,255,255,.06); border:1px dashed var(--edge); border-radius:12px; padding:12px; }
+
+  .promo-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:10px; }
+  .promo{ background: rgba(255,255,255,.06); border:1px solid var(--edge); border-radius:14px; padding:12px; }
+  .promo a{ color:#99f6e4; text-decoration:none; }
+  .promo a:hover{ text-decoration:underline; }
+
+  .kbd{ font-family:ui-monospace, Menlo, Consolas, monospace; background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:6px; padding:2px 6px; }
+
+  @media (max-width:860px){
+    .grid-3{ grid-template-columns:1fr; }
+  }
+  @media (max-width:760px){
+    #controls{ grid-template-columns:1fr; }
+    #shareControls{ grid-template-columns:1fr; }
+    #advancedPanel label{ grid-template-columns:1fr; }
+    .promo-grid{ grid-template-columns:1fr; }
+  }
+</style> 
+  <div class="vx-wrap"> 
+   <div class="vx-hero" id="backlink-generator"> 
+    <div class="vx-top"> 
+     <h1 class="vx-title">⚡ Free Backlink Maker Generator Builder – Viral Online SEO Tool</h1> 
+     <p class="vx-sub">Auto Submission • YouTube Backlinks • Website Promotion • Traffic &amp; Index Booster</p> 
+    </div> <!-- TOOL CORE (do not change ID structure) --> 
+    <div id="controls"> 
+     <input id="urlInput" type="text" placeholder="Enter your page URL…" size="50"> <button id="startBtn">Generate Backlinks</button> <button id="toggleAdvancedBtn">⚙️ Advanced ▼</button> 
+    </div> 
+    <div id="advancedPanel" style="display: none;"> <label>Mode: <select id="modeSelect"> <option value="iframe">IFrame</option> <option value="popup">Popup</option> <option value="tab">Tab</option> <option value="ping">Ping</option> </select> </label> <label>Popup/Tab behavior: <select id="reuseToggle"> <option value="fresh">Open → goto → wait → close</option> <option value="reuse">Reuse same window/tab</option> </select> </label> <label>Max Concurrent: <input id="concurrencyRange" type="range" min="1" max="50" value="5"> <span id="concurrentCount">5</span> </label> <label><input type="checkbox" id="rerunCheckbox"> Repeat after completion</label> <label><input type="checkbox" id="shuffleCheckbox" checked> Shuffle templates before run</label> 
+     <div class="popup-disclaimer">
+       ⚠️ Using <strong>Mode: Popup/Tab</strong>? Allow pop-ups for this site or your browser will block the windows. <small>Nothing opens? Enable pop-ups, then hit “Generate Backlinks” again.</small> 
+     </div> 
+    </div> 
+    <div id="shareControls"> 
+     <input id="newUrl" type="text" readonly placeholder="Shareable URL appears here…"> <button id="copyBtn">Copy</button> 
+    </div> <button id="downloadBtn">Download URLs</button> <a id="externalLink" href="#" style="margin-top: 0.8em; margin-left: 0.8em; font-weight: bold;" target="_self"> 🔗 Open Test </a> 
+    <div id="progressContainer"> 
+     <div style="background:rgba(255,255,255,.12); height:20px; border-radius:10px;"> 
+      <div id="progressBar" style="height:100%; width:0%;"></div> 
+     </div> 
+     <div id="progressText">
+      0/0 (0%)
+     </div> 
+    </div> <!-- Screenshot shown by preview script --> 
+    <img id="previewwebsite" alt="Website Screenshot"> <!-- Results --> 
+    <ul id="results" class="results-list"></ul> 
+   </div> <!-- LONG-FORM, CLICKBAIT/ENGAGING SEO CONTENT --> 
+   <div class="vx-content"> 
+    <h2>🚀 Go Viral Faster: The Free Backlink Maker Generator Builder Online Tool You’ve Been Looking For</h2> 
+    <p class="lead"> Want your pages to pop into Google and YouTube results sooner? This <strong>Free backlink maker generator builder online tool</strong> runs entirely in your browser and unleashes <em>auto submission</em>, smart <em>URL pinger</em> triggers, and rapid <em>archive submit</em> calls across a wide network. It’s your lightweight, no-signup <strong>online SEO tool</strong> for <strong>website promotion</strong>, <strong>YouTube backlinks</strong>, and pure <strong>traffic booster</strong> vibes—without sketchy logins or server-side risk. </p> 
+    <div class="chips" aria-hidden="true"> <span class="chip">Backlink generator</span> <span class="chip">Backlink maker</span> <span class="chip">Link indexing</span> <span class="chip">Crawl discovery</span> <span class="chip">Instant indexing</span> <span class="chip">Social signals</span> <span class="chip">Domain authority growth</span> <span class="chip">Rank YouTube videos faster</span> 
+    </div> 
+    <div class="grid-3"> 
+     <div class="card"> <strong>🔥 Viral Energy Built-In</strong> 
+      <p>Use the <span class="kbd">Shareable URL</span> in free exchanges so real users keep opening your link—triggering <em>auto submission</em> and widening your link graph while you sleep.</p> 
+     </div> 
+     <div class="card"> <strong>⚙️ Modes That Match Your Flow</strong> 
+      <p><em>IFrame</em> for stealth, <em>Popup/Tab</em> for visible runs (allow pop-ups), and <em>Ping</em> for rapid proxy-based pings that skip ahead after the first success.</p> 
+     </div> 
+     <div class="card"> <strong>📥 Download Everything</strong> 
+      <p>Click <span class="kbd">Download URLs</span> to export every submission endpoint for audits, reporting, and client proof.</p> 
+     </div> 
+    </div> 
+    <h2>How It Works (The Quick Story)</h2> 
+    <p> Search engines find content through <strong>crawl discovery</strong> and <strong>link indexing</strong>. By opening/pinging a curated range of aggregators, archives, and social endpoints, you create new and repeated paths to your page. This catalyzes <strong>search engine visibility</strong>, helps <strong>rank YouTube videos faster</strong>, and steadily supports <strong>domain authority growth</strong> with consistent signals. </p> 
+    <h3>Step-by-Step: From Zero to 🔥</h3> 
+    <ol> 
+     <li>Paste your website or video URL in the input above.</li> 
+     <li>Tap <span class="kbd">Generate Backlinks</span> to kick off the run.</li> 
+     <li>Open <span class="kbd">⚙️ Advanced</span> to choose <strong>IFrame</strong>, <strong>Popup/Tab</strong> (enable pop-ups), or <strong>Ping</strong> with <strong>Max Concurrent</strong> tuned to your device.</li> 
+     <li>Watch ⏳ turn into ✔️ as connections succeed. ✖️ happens too—that’s normal; the tool just keeps moving.</li> 
+     <li>Copy your <span class="kbd">Shareable URL</span> and let traffic exchanges keep this engine humming with real user visits.</li> 
+     <li>Export with <span class="kbd">Download URLs</span> whenever you want a clean record.</li> 
+    </ol> 
+    <div class="cta">
+      💡 Pro Growth Loop: Promote your <strong>Shareable URL</strong> everywhere. Each open can fire more endpoints—compounding <strong>auto submission</strong>, <strong>traffic booster</strong>, and <strong>index booster</strong> effects. Try it first on <a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">FollowLike</a> for quick wins. 
+    </div> 
+    <h2>Promote / Referral Link — Free Exchanges That Multiply Your Backlinks</h2> 
+    <p class="note"> These are community-favorite <strong>website promotion</strong> hubs. Use them to pump your <span class="kbd">Shareable URL</span> so real users keep your <em>backlink generator</em> running. Always start with <strong><a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">FollowLike</a></strong> and then rotate others weekly. </p> 
+    <div class="promo-grid"> 
+     <div class="promo"> 
+      <h3>🔥 FollowLike (Start Here)</h3> 
+      <p><a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">https://www.followlike.net/?r=19384926</a></p> 
+      <p>Real users + shares + clicks = more triggers for your <strong>Free backlink maker generator builder online tool</strong>. Perfect for <strong>auto submission</strong> momentum.</p> 
+     </div> 
+     <div class="promo"> 
+      <h3>🚀 AddMeFast</h3> 
+      <p><a href="https://addmefast.com/?ref=SZ8JCOJL" target="_blank" rel="nofollow">https://addmefast.com/?ref=SZ8JCOJL</a></p> 
+      <p>Fast social signals &amp; bursts. Great with YouTube descriptions for extra <strong>traffic booster</strong> lift.</p> 
+     </div> 
+     <div class="promo"> 
+      <h3>🟣 2Pink</h3> 
+      <p><a href="https://2pink.org/dang-ky?ref=119334" target="_blank" rel="nofollow">https://2pink.org/dang-ky?ref=119334</a></p> 
+      <p>Drop in your Shareable URL; keep consistent opens to support <strong>link indexing</strong> and <strong>instant indexing</strong> attempts.</p> 
+     </div> 
+     <div class="promo"> 
+      <h3>📈 RankBoostUp</h3> 
+      <p><a href="https://rankboostup.com/?refid=510070" target="_blank" rel="nofollow">https://rankboostup.com/?refid=510070</a></p> 
+      <p>Steady background signals that help widen <strong>crawl discovery</strong> and improve <strong>search engine visibility</strong>.</p> 
+     </div> 
+     <div class="promo"> 
+      <h3>🔁 Hit4Hit</h3> 
+      <p><a href="https://www.hit4hit.org/?ref=mart192a" target="_blank" rel="nofollow">https://www.hit4hit.org/?ref=mart192a</a></p> 
+      <p>Old-school, still effective. Keeps your <strong>online SEO tool</strong> firing while you focus on content.</p> 
+     </div> 
+     <div class="promo"> 
+      <h3>🌱 Everve</h3> 
+      <p><a href="https://everve.net/ref/343736/" target="_blank" rel="nofollow">https://everve.net/ref/343736/</a></p> 
+      <p>Add a little daily drip of opens to your stack for consistent <strong>domain authority growth</strong> signals.</p> 
+     </div> 
+    </div> 
+    <h3>Repeat This Everywhere (CTA Blasts)</h3> 
+    <ul> 
+     <li>Pin your Shareable URL on <a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">FollowLike</a> for baseline traffic.</li> 
+     <li>Layer with <a href="https://addmefast.com/?ref=SZ8JCOJL" target="_blank" rel="nofollow">AddMeFast</a> for short-term spikes.</li> 
+     <li>Stabilize with <a href="https://2pink.org/dang-ky?ref=119334" target="_blank" rel="nofollow">2Pink</a> and <a href="https://rankboostup.com/?refid=510070" target="_blank" rel="nofollow">RankBoostUp</a>.</li> 
+     <li>Recycle with <a href="https://www.hit4hit.org/?ref=mart192a" target="_blank" rel="nofollow">Hit4Hit</a> and keep <a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">FollowLike</a> in your weekly rotation.</li> 
+    </ul> 
+    <h2>Your Viral Playbook (Pick One &amp; Scale)</h2> 
+    <div class="grid-3"> 
+     <div class="card"> <strong>📹 YouTube First 48h</strong> 
+      <p>Run Ping mode for quick signals, then promote the <span class="kbd">Shareable URL</span> on <a href="https://www.followlike.net/?r=19384926" target="_blank" rel="nofollow">FollowLike</a>. Update descriptions with your site link for bi-directional discovery.</p> 
+     </div> 
+     <div class="card"> <strong>🛒 Product Launch</strong> 
+      <p>IFrame all day at low concurrency. Every few hours, push a burst with Popup (pop-ups allowed) for visible loads. Export URLs for reports.</p> 
+     </div> 
+     <div class="card"> <strong>📰 Fresh News Post</strong> 
+      <p>Shuffle templates for diversification. Share your tool link in Telegram/Discord groups for real-user opens that amplify reach.</p> 
+     </div> 
+    </div> 
+    <h2>FAQ &amp; Friendly Warnings</h2> 
+    <p><strong>Do all sources show ✔️?</strong> No—rate limits and blocks happen. The tool keeps going and records outcomes. That’s normal.</p> 
+    <p><strong>Popup/Tab don’t open?</strong> Your browser blocked them. Allow pop-ups and try again. (There’s a reminder in Advanced.)</p> 
+    <p><strong>How many concurrent?</strong> Start with 5–8 on modest laptops, 10–15 on stronger desktops. Increase gradually.</p> 
+    <h2>Compliance &amp; Disclaimer</h2> 
+    <p> Use responsibly. Respect platform rules; avoid spammy behavior. Results vary by niche, content quality, and competition. This client-side tool opens public endpoints; you are responsible for third-party terms. For <strong>Mode: Popup/Tab</strong>, enable pop-ups. </p> 
+    <h2>Join the Build</h2> 
+    <p>🗨️ Got a high-quality backlink or ping service? Post it in the comments—we may add it to the system.</p> 
+   </div> 
+  </div> <!-- Required scripts only --> 
+  <script src="https://backlink-generator-tool.github.io/backlink-generator-tool/backlink-generator.js"></script> 
+  <script src="https://backlink-generator-tool.github.io/backlink-generator-tool/website-screenshot-preview.js"></script>  
+ </body>
+</html>
