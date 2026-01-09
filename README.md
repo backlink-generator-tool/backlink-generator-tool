@@ -56,7 +56,7 @@ Boost your backlinks using free exchange platforms:
 
 Know a good backlink or ping service? Open an issue or submit a PR. You can also drop it in the Blogger comments section on the main tool page.
 
-## 🔗 Backlink Generator Demo
+## Demo
 - 🔗 [Advanced Anchor Text And Backlink Tool](https://backlink-generator-tool.github.io/backlink-generator-tool/demo/advanced-anchor-text-and-backlink-tool.html)
 - 🔗 [Advanced Backlink Builder For Seo](https://backlink-generator-tool.github.io/backlink-generator-tool/demo/advanced-backlink-builder-for-seo.html)
 - 🔗 [Advanced Backlink Creator With Csv Import](https://backlink-generator-tool.github.io/backlink-generator-tool/demo/advanced-backlink-creator-with-csv-import.html)
