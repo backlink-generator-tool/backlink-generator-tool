@@ -11,11 +11,6 @@ Boost your SEO rankings with this all-in-one Backlink Generator Tool. This proje
 - 📥 Download and copy generated backlink URLs
 - 🧩 Easily embeddable in Blogger or other CMS platforms
 
-## 🔗 Try Backlink Generator
-- １ [Auto Backlink Tool](https://autobacklinktoolonline.blogspot.com/)
-- ２ [Generate Backlinks Fast](https://fastbacklinkgenerator.blogspot.com/)
-- ３ [Online Link Builder](https://onlinelinkbuildertool.blogspot.com/)
-
 ## 📁 Included Files
 
 | File/Folder            | Description                                  |
