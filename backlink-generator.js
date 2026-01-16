@@ -855,8 +855,8 @@ function startRun() {
 
     totalTasks = queue.length;
     updateProgress();
-    //newUrlInput.value = location.origin + '?' + norm;
-    newUrlInput.value = window.location.href + '?' + norm;
+    newUrlInput.value = location.origin + '?' + norm;
+    //newUrlInput.value = window.location.href + '?' + norm;
     window.history.replaceState(null, '', location.pathname + '?' + norm);
 
     // Archive current page (only when a run actually starts)
