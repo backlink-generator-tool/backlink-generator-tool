@@ -687,69 +687,144 @@ async function launchSlot(slot) {
     }
 }
 
-function submitToWaybackInFrame(iframe) {
+// small URL validator (safe, uses URL constructor)
+function isValidURL(u) {
   try {
-    const targetUrl = window.location.href;
-    
-    const form = document.createElement("form");
-    form.style.display = "none";
-    form.target = iframe.name;
-    form.method = "POST";
-    form.action = "https://web.archive.org/save/";
-    form.className = "web-save-form";
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "url";
-    input.value = targetUrl;
-    form.appendChild(input);
-    document.body.appendChild(form);
-
-    console.log("📨 Submitting to Wayback in frame:", iframe.name, "target URL:", targetUrl);
-    form.submit();
-
-    // remove after a short delay to be safe
-    setTimeout(() => {
-      try { form.remove(); } catch(e) { /* ignore */ }
-    }, 1000);
-  } catch (err) {
-    console.error("❌ submitToWaybackInFrame error:", err);
+    if (!u || typeof u !== 'string') return false;
+    // allow encoded forms too: decode safely
+    let cand = u.trim();
+    try {
+      const dec = decodeURIComponent(cand);
+      if (dec && dec !== cand) cand = dec;
+    } catch (e) { /* ignore */ }
+    // ensure we have a scheme for URL parsing
+    if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(cand)) cand = 'https://' + cand;
+    new URL(cand);
+    return true;
+  } catch (e) {
+    return false;
   }
 }
 
-/* === Add this helper (place it ABOVE startRun) ========================== */
-// Archive the current page in a hidden iframe and auto-remove after 3 minutes.
-function archiveCurrentPageBackground() {
-    try {
-        const iframe = document.createElement('iframe');
+/**
+ * Submits a hidden form (POST) to web.archive.org/save/ using the supplied iframe as target.
+ * If iframe is not attached yet, it will still work since we ensure attachment before submit.
+ *
+ * @param {HTMLIFrameElement} iframe - existing iframe element (will be given a name if missing)
+ * @param {string} [targetUrl] - url to archive (defaults to window.location.href)
+ */
+function submitToWaybackInFrame(iframe, targetUrl) {
+  try {
+    targetUrl = (typeof targetUrl === 'string' && targetUrl.trim()) ? targetUrl.trim() : window.location.href;
 
-        iframe.className = 'hidden-iframe';            // uses your existing CSS
-        // Apply inline styles (completely invisible but functional)
-        /*
-        Object.assign(iframe.style, {
-            position: "fixed",
-            width: "0",
-            height: "0",
-            border: "0",
-            left: "0",
-            bottom: "0",
-            opacity: "0",
-            pointerEvents: "none",
-            zIndex: "-1"
-        });
-        */
-        
-        iframe.title = 'Archive current page';
-        iframe.referrerPolicy = 'no-referrer-when-downgrade';
-        //iframe.src = 'https://web.archive.org/save/' + encodeURIComponent(url);
-        //iframe.src = 'https://web.archive.org/save/' + url;
-        setTimeout(() => submitToWaybackInFrame(iframe), 250);
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-            try {
-                iframe.remove();
-            } catch (_) {}
-        }, 180000);
-    } catch (_) {}
+    if (!isValidURL(targetUrl)) {
+      console.warn('submitToWaybackInFrame: invalid target URL:', targetUrl);
+      return;
+    }
+
+    // Ensure iframe has a name (used as form.target)
+    if (!iframe.name) {
+      iframe.name = 'bg-wayback-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
+    }
+
+    // Ensure iframe is attached to the DOM before submit (some browsers require this)
+    if (!document.body.contains(iframe)) {
+      document.body.appendChild(iframe);
+    }
+
+    // Build hidden form and submit to Wayback Save endpoint
+    const form = document.createElement('form');
+    form.style.display = 'none';
+    form.method = 'POST';
+    form.action = 'https://web.archive.org/save/';
+    form.target = iframe.name;
+    form.className = 'web-save-form';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'url';
+    input.value = targetUrl;
+    form.appendChild(input);
+
+    // Attach, submit, then clean-up the form quickly (we keep iframe for TTL)
+    document.body.appendChild(form);
+
+    console.log('Wayback: submitting POST to /save/ for', targetUrl, 'target iframe:', iframe.name);
+    try {
+      form.submit();
+    } catch (eSubmit) {
+      // Some browsers restrict programmatic submit in rare contexts; try dispatching a submit event as fallback
+      try {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      } catch (eEvent) {}
+    }
+
+    // Remove the form after a short delay
+    setTimeout(() => {
+      try { form.remove(); } catch (e) {}
+    }, 1000);
+  } catch (err) {
+    console.error('submitToWaybackInFrame error:', err);
+  }
+}
+
+/**
+ * Create a tiny, invisible iframe, submit a Wayback save request into it,
+ * and auto-remove iframe after TTL. If background method appears to fail (no network request),
+ * optionally fallback to opening a small tab (may be blocked by popup blocker).
+ */
+function archiveCurrentPageBackground(opts = {}) {
+  try {
+    const ttl = (typeof opts.ttl === 'number') ? opts.ttl : 180000; // default 3 minutes
+    const targetUrl = (typeof opts.url === 'string' && opts.url.trim()) ? opts.url.trim() : window.location.href;
+
+    if (!isValidURL(targetUrl)) {
+      console.warn('archiveCurrentPageBackground: invalid URL, skipping:', targetUrl);
+      return false;
+    }
+
+    // Create the iframe and make it minimally visible but effectively hidden.
+    const iframe = document.createElement('iframe');
+    iframe.title = 'Archive current page';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    iframe.className = 'hidden-iframe';
+
+    // Use inline styles so CSS won't accidentally hide it (we keep it tiny and non-interactive)
+    Object.assign(iframe.style, {
+      position: 'fixed',
+      left: '0',
+      bottom: '0',
+      width: '1px',
+      height: '1px',
+      border: '0',
+      padding: '0',
+      margin: '0',
+      opacity: '0',
+      pointerEvents: 'none',
+      zIndex: '-999999'
+    });
+
+    // Ensure iframe has a stable name before we build the form target
+    iframe.name = 'bg-wayback-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
+
+    // Append iframe then submit
+    document.body.appendChild(iframe);
+
+    // small delay before submit to ensure DOM attach
+    setTimeout(() => submitToWaybackInFrame(iframe, targetUrl), 200);
+
+    // cleanup after TTL
+    const ttlTimer = setTimeout(() => {
+      try { iframe.remove(); } catch (e) {}
+      clearTimeout(ttlTimer);
+    }, ttl);
+
+    console.info('archiveCurrentPageBackground: attempted background save for', targetUrl, 'iframe name:', iframe.name);
+    return true;
+  } catch (err) {
+    console.error('archiveCurrentPageBackground fatal error:', err);
+    return false;
+  }
 }
 
 function startRun() {
