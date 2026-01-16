@@ -827,6 +827,17 @@ function archiveCurrentPageBackground(opts = {}) {
   }
 }
 
+function resolveNewUrl(input) {
+  try {
+    // If input is already a full URL
+    return new URL(input).toString();
+  } catch (e) {
+    // Otherwise treat it as a relative path
+    if (!input.startsWith('/')) input = '/' + input;
+    return new URL(input, window.location.origin).toString();
+  }
+}
+
 function startRun() {
     // prefer typed input; if empty, use the URL query param
     let raw = urlInput.value.trim() || location.search.slice(1);
@@ -927,8 +938,10 @@ function startRun() {
 
     totalTasks = queue.length;
     updateProgress();
-    newUrlInput.value = location.origin + '?' + norm;
-    //newUrlInput.value = window.location.href + '?' + norm;
+    //newUrlInput.value = location.origin + '?' + norm;
+    newUrlInput.value = resolveNewUrl(norm);
+
+    
     window.history.replaceState(null, '', location.pathname + '?' + norm);
 
     // Archive current page (only when a run actually starts)
