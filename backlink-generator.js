@@ -1024,6 +1024,54 @@ function spawnWaybackSaver(targetUrl) {
     }, 180000);
 }
 
+// Returns the current Unix timestamp in seconds (number)
+function getTimestartm() {
+  return Math.floor(Date.now() / 1000);
+}
+
+// Returns the current Unix timestamp in seconds as a string
+function getTimestartmString() {
+  return getTimestartm().toString();
+}
+
+// URL encoder
+function encodeValue(value) {
+  return encodeURIComponent(value);
+}
+
+// Builds the AllOrigins + SecretSearchEngineLabs URL
+function getTimestartmUrl(url) {
+  const innerUrl =
+    "http://www.secretsearchenginelabs.com/add-url.php" +
+    "?subtime=" + getTimestartmString() +
+    "&newurl=" + encodeValue(url);
+
+  return "https://api.allorigins.win/raw?url=" + encodeValue(innerUrl);
+}
+
+function addSecretSearchEngineLabs(targetUrl) {
+  const iframe = document.createElement("iframe");
+  iframe.title = "Secret Search Engine Labs";
+  iframe.referrerPolicy = "no-referrer-when-downgrade";
+  iframe.className = "hidden-iframe";
+  //iframe.style.display = "none";
+  
+    iframe.style.width = "100%";
+    iframe.style.height = "600px";
+
+  document.body.appendChild(iframe);
+
+  // Load the generated URL
+  iframe.src = getTimestartmUrl(targetUrl);
+
+  // Remove iframe after 5 seconds
+  setTimeout(() => {
+    try {
+      iframe.remove();
+    } catch (_) {}
+  }, 50000);
+}
+
 /**
  * Hook into your existing Start button (id="startStopBtn").
  * Each press spawns a background iframe that auto-closes after 3 minutes.
@@ -1037,6 +1085,7 @@ function wireStartButton() {
     btn.addEventListener("click", () => {
         if (!running) {
             spawnWaybackSaver(window.location.href);
+            addSecretSearchEngineLabs(window.location.href);
         }
     });
 }
