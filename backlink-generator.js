@@ -690,10 +690,7 @@ async function launchSlot(slot) {
 function submitToWaybackInFrame(iframe) {
   try {
     const targetUrl = window.location.href;
-    if (!targetUrl || !isValidURL(targetUrl)) {
-      console.warn("⚠ Skipping invalid target:", targetUrl);
-      return;
-    }
+    
     const form = document.createElement("form");
     form.style.display = "none";
     form.target = iframe.name;
