@@ -939,8 +939,10 @@ function startRun() {
     totalTasks = queue.length;
     updateProgress();
     //newUrlInput.value = location.origin + '?' + norm;
-    newUrlInput.value = resolveNewUrl(norm);
+    //newUrlInput.value = resolveNewUrl(norm);
 
+    //newUrlInput.value = window.location.origin + window.location.pathname +  '?' + encodeURIComponent(norm);
+    newUrlInput.value = window.location.origin + window.location.pathname +  '?' + norm;
     
     window.history.replaceState(null, '', location.pathname + '?' + norm);
 
