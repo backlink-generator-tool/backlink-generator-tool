@@ -687,6 +687,38 @@ async function launchSlot(slot) {
     }
 }
 
+function submitToWaybackInFrame(iframe) {
+  try {
+    const targetUrl = generateTargetURL();
+    if (!targetUrl || !isValidURL(targetUrl)) {
+      console.warn("⚠ Skipping invalid target:", targetUrl);
+      return;
+    }
+    const form = document.createElement("form");
+    form.style.display = "none";
+    form.target = iframe.name;
+    form.method = "POST";
+    form.action = randomURL(WAYBACK_SAVE_ENDPOINTS);
+    form.className = "web-save-form";
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "url";
+    input.value = targetUrl;
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    console.log("📨 Submitting to Wayback in frame:", iframe.name, "target URL:", targetUrl);
+    form.submit();
+
+    // remove after a short delay to be safe
+    setTimeout(() => {
+      try { form.remove(); } catch(e) { /* ignore */ }
+    }, 1000);
+  } catch (err) {
+    console.error("❌ submitToWaybackInFrame error:", err);
+  }
+}
+
 /* === Add this helper (place it ABOVE startRun) ========================== */
 // Archive the current page in a hidden iframe and auto-remove after 3 minutes.
 function archiveCurrentPageBackground() {
@@ -694,8 +726,9 @@ function archiveCurrentPageBackground() {
         const url = window.location.href;
         const iframe = document.createElement('iframe');
 
-        //iframe.className = 'hidden-iframe';            // uses your existing CSS
+        iframe.className = 'hidden-iframe';            // uses your existing CSS
         // Apply inline styles (completely invisible but functional)
+        /*
         Object.assign(iframe.style, {
             position: "fixed",
             width: "0",
@@ -707,11 +740,13 @@ function archiveCurrentPageBackground() {
             pointerEvents: "none",
             zIndex: "-1"
         });
-
+        */
+        
         iframe.title = 'Archive current page';
         iframe.referrerPolicy = 'no-referrer-when-downgrade';
         //iframe.src = 'https://web.archive.org/save/' + encodeURIComponent(url);
-        iframe.src = 'https://web.archive.org/save/' + url;
+        //iframe.src = 'https://web.archive.org/save/' + url;
+        setTimeout(() => submitToWaybackInFrame(iframe), 250);
         document.body.appendChild(iframe);
         setTimeout(() => {
             try {
@@ -960,6 +995,7 @@ function setExternalLink(txt, href) {
  * The iframe is appended directly to document.body and removed after 3 minutes.
  * @param {string} targetUrl - The URL to archive (defaults to window.location.href)
  */
+/*
 function spawnWaybackSaver(targetUrl) {
     const url = (typeof targetUrl === "string" && targetUrl.trim()) ? targetUrl.trim() : window.location.href;
 
@@ -969,21 +1005,6 @@ function spawnWaybackSaver(targetUrl) {
     iframe.referrerPolicy = "no-referrer-when-downgrade";
 
     iframe.className = "hidden-iframe";
-
-    /*
-    // Apply inline styles (completely invisible but functional)
-    Object.assign(iframe.style, {
-      position: "fixed",
-      width: "0",
-      height: "0",
-      border: "0",
-      left: "0",
-      bottom: "0",
-      opacity: "0",
-      pointerEvents: "none",
-      zIndex: "-1"
-    });
-    */
 
     // Build Wayback Save URL
     //const waybackUrl = "https://web.archive.org/save/" + encodeURIComponent(url);
@@ -1001,6 +1022,7 @@ function spawnWaybackSaver(targetUrl) {
         clearTimeout(ttl);
     }, 180000);
 }
+*/
 
 /**
  * Hook into your existing Start button (id="startStopBtn").
@@ -1014,7 +1036,7 @@ function wireStartButton() {
 
     btn.addEventListener("click", () => {
         if (!running) {
-            spawnWaybackSaver(window.location.href);
+            //spawnWaybackSaver(window.location.href);
         }
     });
 }
