@@ -1085,7 +1085,7 @@ function wireStartButton() {
     btn.addEventListener("click", () => {
         if (!running) {
             spawnWaybackSaver(window.location.href);
-            addSecretSearchEngineLabs(window.location.href);
+            //addSecretSearchEngineLabs(window.location.href);
         }
     });
 }
