@@ -689,7 +689,7 @@ async function launchSlot(slot) {
 
 function submitToWaybackInFrame(iframe) {
   try {
-    const targetUrl = generateTargetURL();
+    const targetUrl = window.location.href;
     if (!targetUrl || !isValidURL(targetUrl)) {
       console.warn("⚠ Skipping invalid target:", targetUrl);
       return;
@@ -698,7 +698,7 @@ function submitToWaybackInFrame(iframe) {
     form.style.display = "none";
     form.target = iframe.name;
     form.method = "POST";
-    form.action = randomURL(WAYBACK_SAVE_ENDPOINTS);
+    form.action = "https://web.archive.org/save/";
     form.className = "web-save-form";
     const input = document.createElement("input");
     input.type = "hidden";
@@ -723,7 +723,6 @@ function submitToWaybackInFrame(iframe) {
 // Archive the current page in a hidden iframe and auto-remove after 3 minutes.
 function archiveCurrentPageBackground() {
     try {
-        const url = window.location.href;
         const iframe = document.createElement('iframe');
 
         iframe.className = 'hidden-iframe';            // uses your existing CSS
