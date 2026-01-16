@@ -984,7 +984,6 @@ function spawnWaybackSaver(targetUrl) {
     });
     */
 
-    /*
     // Build Wayback Save URL
     //const waybackUrl = "https://web.archive.org/save/" + encodeURIComponent(url);
     const waybackUrl = "https://web.archive.org/save/" + url;
@@ -992,28 +991,6 @@ function spawnWaybackSaver(targetUrl) {
     // Append to the body and load
     document.body.appendChild(iframe);
     iframe.src = waybackUrl;
-    */
-
-    const form = document.createElement("form");
-    form.style.display = "none";
-    form.target = iframe.name;
-    form.method = "POST";
-    form.action = "https://web.archive.org/save";
-    form.className = "web-save-form";
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "url";
-    input.value = targetUrl;
-    form.appendChild(input);
-    document.body.appendChild(form);
-
-    console.log("📨 Submitting to Wayback in frame:", iframe.name, "target URL:", targetUrl);
-    form.submit();
-
-    // remove after a short delay to be safe
-    setTimeout(() => {
-      try { form.remove(); } catch(e) { /* ignore */ }
-    }, 1000);
 
     // Auto-remove after 3 minutes (180000 ms)
     const ttl = setTimeout(() => {
